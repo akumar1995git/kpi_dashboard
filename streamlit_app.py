@@ -2,7 +2,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 # Replace with your actual Excel file name or path
-file_path = 'your_uploaded_file.xlsx'
+file_path = 'Updated_18_KPI_Dashboard.xlsx'
 
 # Read in the data from the first sheet
 df = pd.read_excel(file_path)
