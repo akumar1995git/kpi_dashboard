@@ -2,144 +2,59 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 
-st.set_page_config(layout="wide", page_title="Organizational Analytics Dashboard")
+# List only the employee-related KPI sheets
+employee_sheets = [
+    'Role_vs_Reality_Analysis',
+    'Hidden_Capacity_Burnout_Risk',
+    'Work_Models_Effectiveness',
+    'Digital_Collaboration_Overload',
+    'Digital_Wellbeing_Index',
+    'Data_Driven_Skill_Gap_Analysis',
+    'High_Value_Work_Ratio',
+    'Future_Skill_Readiness_Index',
+    'Shadow_IT_Risk_Score'
+]
 
-@st.cache_data
-def load_data(uploaded_file):
-    xls = pd.ExcelFile(uploaded_file)
-    data = {sheet: xls.parse(sheet) for sheet in xls.sheet_names}
-    return data
+st.title("Employee KPI Dashboard")
+st.write("Select and explore detailed KPIs for individual employees.")
 
-uploaded_file = st.file_uploader("Upload Updated_18_KPI_Dashboard.xlsx", type=["xlsx"])
+# Load data from Excel - use your local file or repo link
+excel_file = "Updated_18_KPI_Dashboard.xlsx"  # Put file path here or from GitHub repo
 
-if uploaded_file:
-    data = load_data(uploaded_file)
+# Sidebar for KPI selection
+selected_kpi = st.sidebar.selectbox("Select Employee KPI", employee_sheets)
 
-    st.title("Organizational Analytics Dashboard")
+# Load selected sheet
+df = pd.read_excel(excel_file, sheet_name=selected_kpi)
 
-    st.header("Executive Summary & Key Insights")
+# Show data preview
+st.subheader(f"Data Preview: {selected_kpi.replace('_', ' ')}")
+st.dataframe(df.head())
 
-   
+# Basic overview statistics
+st.write("Summary Statistics")
+st.write(df.describe())
 
-    # High Value Work
-    if "High_Value_Work_Ratio" in data:
-        df = data["High_Value_Work_Ratio"]
-        avg_hv = df['High_Value_Work_Percentage'].mean() * 100
-        st.markdown(f"**High Value Work:** Average percentage **{avg_hv:.1f}%**")
-        agg = df.groupby('Reporting_Period')['High_Value_Work_Percentage'].mean().reset_index()
-        fig = px.line(agg, x='Reporting_Period', y='High_Value_Work_Percentage',
-                      title="High Value Work Percentage Over Time",
-                      labels={"High_Value_Work_Percentage": "High Value Work %"})
-        st.plotly_chart(fig, use_container_width=True)
+# Employee dropdown
+if "Employee_ID" in df.columns:
+    emp_list = df["Employee_ID"].unique()
+    selected_emp = st.selectbox("Select Employee", emp_list)
+    emp_df = df[df["Employee_ID"] == selected_emp]
+    st.write(f"Details for Employee: {selected_emp}")
+    st.dataframe(emp_df)
 
-    # Digital Wellbeing
-    if "Digital_Wellbeing_Index" in data:
-        df = data["Digital_Wellbeing_Index"]
-        avg_dw = df['Digital_Wellbeing_Score'].mean()
-        st.markdown(f"**Digital Wellbeing:** Average score {avg_dw:.2f}")
-        agg = df.groupby('Reporting_Period')['Digital_Wellbeing_Score'].mean().reset_index()
-        fig = px.line(agg, x='Reporting_Period', y='Digital_Wellbeing_Score',
-                      title="Digital Wellbeing Score Over Time")
-        st.plotly_chart(fig, use_container_width=True)
+    # Visualization
+    # Detect columns to plot time trends (reporting period/date/quarter)
+    time_col = next((col for col in df.columns if col.lower() in ["reporting_period", "week_ending_date", "quarter"]), None)
+    metric_cols = [col for col in df.columns if col not in ["Employee_ID", time_col]]
 
-    # Organizational Agility
-    if "Organizational_Agility_Score" in data:
-        df = data["Organizational_Agility_Score"]
-        avg_ag = df['Agility_Score'].mean()
-        st.markdown(f"**Organizational Agility:** Average score {avg_ag:.2f}")
-        agg = df.groupby('Quarter')['Agility_Score'].mean().reset_index()
-        fig = px.bar(agg, x='Quarter', y='Agility_Score', title="Organizational Agility Score by Quarter")
-        st.plotly_chart(fig, use_container_width=True)
-
-    # Skill Gap Analysis
-    if "Data_Driven_Skill_Gap_Analysis" in data:
-        df = data["Data_Driven_Skill_Gap_Analysis"]
-        agg = df.groupby('Skill_Category')['Skill_Gap_Score'].mean().reset_index()
-        highest_gap = agg.loc[agg['Skill_Gap_Score'].idxmax()]
-        st.markdown(f"**Skill Gaps:** Largest gap in **{highest_gap.Skill_Category}**: {highest_gap.Skill_Gap_Score:.2f}")
-        fig = px.bar(agg, x='Skill_Category', y='Skill_Gap_Score', title="Skill Gap Score by Category")
-        st.plotly_chart(fig, use_container_width=True)
-
-    st.markdown("---")
-    st.header("Detailed Interactive Visualizations")
-
-    # Role vs Reality - Low Value Tasks over Time by Employee_ID
-    if "Role_vs_Reality_Analysis" in data:
-        df = data["Role_vs_Reality_Analysis"]
-        fig = px.bar(df, x='Reporting_Period', y='Time_Low_Value_Tasks_Hours', color='Employee_ID',
-                     title="Low Value Task Hours by Employee and Period")
-        st.plotly_chart(fig, use_container_width=True)
-
-    # Capacity Utilization trend
-    if "Hidden_Capacity_Burnout_Risk" in data:
-        df = data["Hidden_Capacity_Burnout_Risk"]
-        fig = px.line(df, x='Week_Ending_Date', y='Capacity_Utilization_Percentage', color='Employee_ID',
-                      title="Weekly Capacity Utilization")
-        st.plotly_chart(fig, use_container_width=True)
-
-    # Work Model Productivity
-    if "Work_Models_Effectiveness" in data:
-        df = data["Work_Models_Effectiveness"]
-        fig = px.box(df, x='Work_Model', y='Productivity_Index', title="Productivity Index by Work Model")
-        st.plotly_chart(fig, use_container_width=True)
-
-    # Meeting Load Hours Distribution
-    if "Digital_Wellbeing_Index" in data:
-        df = data["Digital_Wellbeing_Index"]
-        fig = px.histogram(df, x='Meeting_Load_Hours', nbins=20, title="Meeting Load Hours Distribution")
-        st.plotly_chart(fig, use_container_width=True)
-
-    # Collaboration Overload percentage over time
-    if "Digital_Collaboration_Overload" in data:
-        df = data["Digital_Collaboration_Overload"]
-        fig = px.line(df, x='Week_Ending_Date', y='Collaboration_Overload_Percentage', color='Employee_ID',
-                      title="Collaboration Overload Over Weeks")
-        st.plotly_chart(fig, use_container_width=True)
-
-    # Shadow IT Risk Score distribution
-    if "Shadow_IT_Risk_Score" in data:
-        df = data["Shadow_IT_Risk_Score"]
-        fig = px.histogram(df, x='Risk_Score', nbins=20, title="Shadow IT Risk Score Distribution")
-        st.plotly_chart(fig, use_container_width=True)
-
-    # Process Brittleness over time
-    if "Process_Brittleness_Index" in data:
-        df = data["Process_Brittleness_Index"]
-        agg = df.groupby(['Process_ID', 'Reporting_Period']).agg(Brittleness=('Brittleness_Percentage', 'mean')).reset_index()
-        fig = px.line(agg, x='Reporting_Period', y='Brittleness', color='Process_ID', title="Process Brittleness")
-        st.plotly_chart(fig, use_container_width=True)
-
-    # Automation Savings over time
-    if "Automation_Velocity_Impact" in data:
-        df = data["Automation_Velocity_Impact"]
-        agg = df.groupby(['Automation_Project_ID', 'Reporting_Period']).agg(Savings=('Process_Automation_Savings_Hours', 'sum')).reset_index()
-        fig = px.bar(agg, x='Reporting_Period', y='Savings', color='Automation_Project_ID', title="Automation Savings")
-        st.plotly_chart(fig, use_container_width=True)
-
-    # Order to Delivery Processing Time
-    if "OrderToDelivery" in data:
-        df = data["OrderToDelivery"]
-        fig = px.line(df, x='Week_Ending_Date', y='Processing_Time_Days', title="Order to Delivery Processing Time")
-        st.plotly_chart(fig, use_container_width=True)
-
-    # Issue to Resolution Processing Time
-    if "IssueToResolution" in data:
-        df = data["IssueToResolution"]
-        fig = px.line(df, x='Week_Ending_Date', y='Processing_Time_Days', title="Issue to Resolution Processing Time")
-        st.plotly_chart(fig, use_container_width=True)
-
-    # Cross-Functional Process Latency
-    if "CrossFunctionalProcessLatency" in data:
-        df = data["CrossFunctionalProcessLatency"]
-        fig = px.line(df, x='Week_Ending_Date', y='Processing_Time_Days', color='Process_Name', title="Cross-Functional Process Latency")
-        st.plotly_chart(fig, use_container_width=True)
-
-    # Vulnerability Hotspots by Critical Task
-    if "VulnerabilityHotspots" in data:
-        df = data["VulnerabilityHotspots"]
-        fig = px.bar(df, x='Critical_Task_ID', y='Individual_Vulnerability_Percentage', color='Is_Vulnerable', title="Vulnerability Hotspots")
-        st.plotly_chart(fig, use_container_width=True)
-
-    
+    if time_col and metric_cols:
+        metric_to_plot = st.selectbox("Select Metric to Plot", metric_cols)
+        fig = px.line(emp_df, x=time_col, y=metric_to_plot, title=f"{metric_to_plot} over time for {selected_emp}")
+        st.plotly_chart(fig)
 else:
-    st.info("Please upload the Excel file to begin analysis and visualization.")
+    st.write("No Employee_ID column found in this sheet.")
+
+st.write("---")
+st.markdown("Data source: [Updated_18_KPI_Dashboard.xlsx](link to repo or upload)")
+
