@@ -19,14 +19,7 @@ if uploaded_file:
 
     st.header("Executive Summary & Key Insights")
 
-    # Burnout Risk
-    if "Hidden_Capacity_Burnout_Risk" in data:
-        df = data["Hidden_Capacity_Burnout_Risk"]
-        avg_burnout = df['Burnout_Risk_Score'].mean()
-        high_burnout_pct = (df['Burnout_Risk_Score'] > 4.5).mean() * 100
-        st.markdown(f"**Burnout Risk:** Average score **{avg_burnout:.2f}**; High burnout risk (>4.5): **{high_burnout_pct:.1f}%**")
-        fig = px.histogram(df, x='Burnout_Risk_Score', nbins=20, title="Burnout Risk Score Distribution")
-        st.plotly_chart(fig, use_container_width=True)
+   
 
     # High Value Work
     if "High_Value_Work_Ratio" in data:
