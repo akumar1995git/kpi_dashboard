@@ -1,8 +1,9 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+import plotly.graph_objects as go
 
-# List only the employee-related KPI sheets
+# Employee-centric KPI sheets
 employee_sheets = [
     'Role_vs_Reality_Analysis',
     'Hidden_Capacity_Burnout_Risk',
@@ -15,46 +16,102 @@ employee_sheets = [
     'Shadow_IT_Risk_Score'
 ]
 
-st.title("Employee KPI Dashboard")
-st.write("Select and explore detailed KPIs for individual employees.")
+st.set_page_config(page_title="Employee KPI Dashboard", layout="wide", initial_sidebar_state="expanded")
+st.markdown(
+    """
+    <style>
+    .main {
+        background-color: #EEF6FA;
+    }
+    .stApp {
+        background-color: #ECF4F9;
+    }
+    .css-1d391kg { background: #357ABD !important; }
+    </style>
+    """, unsafe_allow_html=True
+)
 
-# Load data from Excel - use your local file or repo link
-excel_file = "Updated_18_KPI_Dashboard.xlsx"  # Put file path here or from GitHub repo
+st.title("🔎 Employee KPI Dashboard")
+st.markdown("##### View and analyze detailed, time-trended employee metrics with rich visualizations.")
 
-# Sidebar for KPI selection
-selected_kpi = st.sidebar.selectbox("Select Employee KPI", employee_sheets)
+excel_file = "Updated_18_KPI_Dashboard.xlsx"
 
-# Load selected sheet
+selected_kpi = st.sidebar.selectbox("📊 Select Employee KPI", employee_sheets)
 df = pd.read_excel(excel_file, sheet_name=selected_kpi)
 
-# Show data preview
-st.subheader(f"Data Preview: {selected_kpi.replace('_', ' ')}")
-st.dataframe(df.head())
+# Sidebar filter: show employees
+emp_col = "Employee_ID" if "Employee_ID" in df.columns else None
+if emp_col:
+    emp_list = df[emp_col].unique()
+    selected_emp = st.sidebar.selectbox("👤 Select Employee", emp_list)
 
-# Basic overview statistics
-st.write("Summary Statistics")
-st.write(df.describe())
-
-# Employee dropdown
-if "Employee_ID" in df.columns:
-    emp_list = df["Employee_ID"].unique()
-    selected_emp = st.selectbox("Select Employee", emp_list)
-    emp_df = df[df["Employee_ID"] == selected_emp]
-    st.write(f"Details for Employee: {selected_emp}")
-    st.dataframe(emp_df)
-
-    # Visualization
-    # Detect columns to plot time trends (reporting period/date/quarter)
-    time_col = next((col for col in df.columns if col.lower() in ["reporting_period", "week_ending_date", "quarter"]), None)
-    metric_cols = [col for col in df.columns if col not in ["Employee_ID", time_col]]
-
-    if time_col and metric_cols:
-        metric_to_plot = st.selectbox("Select Metric to Plot", metric_cols)
-        fig = px.line(emp_df, x=time_col, y=metric_to_plot, title=f"{metric_to_plot} over time for {selected_emp}")
-        st.plotly_chart(fig)
+    emp_df = df[df[emp_col] == selected_emp]
+    st.subheader(f"Details for Employee: `{selected_emp}`")
 else:
-    st.write("No Employee_ID column found in this sheet.")
+    emp_df = df.copy()
 
-st.write("---")
-st.markdown("Data source: [Updated_18_KPI_Dashboard.xlsx](link to repo or upload)")
+# Time columns auto-detection
+time_col = next((col for col in df.columns if 'report' in col.lower() or 'week' in col.lower() or 'quarter' in col.lower()), None)
+numeric_cols = emp_df.select_dtypes(include='number').columns.tolist()
+metric_cols = [col for col in numeric_cols if col != time_col]
 
+# Layout - 3 columns for top metrics
+col1, col2, col3 = st.columns([1, 1, 1])
+for i, metric in enumerate(metric_cols[:3]):
+    val = emp_df[metric].mean() if not emp_df.empty else None
+    with [col1, col2, col3][i]:
+        st.metric(label=f"{metric.replace('_',' ').title()}", value=f"{val:,.2f}" if val is not None else '')
+
+st.markdown("---")
+
+# Main Visualization - Multi-graph display
+st.subheader("Employee KPI Trends & Distributions")
+
+tab1, tab2, tab3 = st.tabs(["Trend Analysis", "Distribution", "Employee Comparison"])
+
+with tab1:
+    if time_col and metric_cols:
+        metric_to_plot = st.selectbox("Select Metric to Plot (Trend)", metric_cols, key="trend_metric")
+        fig = px.line(emp_df, x=time_col, y=metric_to_plot,
+                      markers=True,
+                      title=f"{metric_to_plot.replace('_',' ')} over Time",
+                      color_discrete_sequence=px.colors.qualitative.Plotly)
+        fig.update_layout(template='plotly_white', title_x=0.5)
+        st.plotly_chart(fig, use_container_width=True)
+    else:
+        st.info("Trend chart not available for this metric.")
+
+with tab2:
+    dist_metric = st.selectbox("Select Metric for Distribution", metric_cols, key="dist_metric")
+    fig = px.histogram(emp_df, x=dist_metric,
+                       nbins=20,
+                       title=f"{dist_metric.replace('_',' ')} Distribution",
+                       color_discrete_sequence=['#357ABD'])
+    fig.update_layout(template='plotly_white', title_x=0.5)
+    st.plotly_chart(fig, use_container_width=True)
+
+with tab3:
+    if emp_col and metric_cols:
+        comp_metric = st.selectbox("Compare Employees by Metric", metric_cols, key="comp_metric")
+        comp_df = df[[emp_col, time_col, comp_metric]].dropna()
+        fig = px.box(comp_df, x=emp_col, y=comp_metric,
+                     color=emp_col,
+                     title=f"{comp_metric.replace('_',' ')} Across Employees",
+                     color_discrete_sequence=px.colors.sequential.Blues)
+        fig.update_layout(template='plotly_white', title_x=0.5)
+        st.plotly_chart(fig, use_container_width=True)
+    else:
+        st.info("No employee comparison available.")
+
+st.markdown("---")
+st.subheader("Raw KPI Data Preview")
+st.dataframe(emp_df, use_container_width=True, height=250)
+
+st.success("Tip: Use the sidebar to choose KPIs or filter employees. Click tabs above for more views.\n")
+
+st.markdown(
+    "<style>div.stTabs>div>button[data-baseweb='tab']{background:#D2E2F4;color:#05386B;}</style>",
+    unsafe_allow_html=True
+)
+
+st.markdown("Data source: [Updated_18_KPI_Dashboard.xlsx](link to your repo)")
