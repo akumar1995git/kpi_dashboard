@@ -1,9 +1,18 @@
 import streamlit as st
 import pandas as pd
+import numpy as np
 import plotly.express as px
-import plotly.graph_objects as go
 
-# Employee-centric KPI sheets
+# ---------- SETUP ----------
+st.set_page_config(
+    page_title="Professional Employee KPI Dashboard",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
+# Color palette for charts
+COLORS = px.colors.qualitative.Safe
+
 employee_sheets = [
     'Role_vs_Reality_Analysis',
     'Hidden_Capacity_Burnout_Risk',
@@ -16,102 +25,164 @@ employee_sheets = [
     'Shadow_IT_Risk_Score'
 ]
 
-st.set_page_config(page_title="Employee KPI Dashboard", layout="wide", initial_sidebar_state="expanded")
-st.markdown(
-    """
-    <style>
-    .main {
-        background-color: #EEF6FA;
-    }
-    .stApp {
-        background-color: #ECF4F9;
-    }
-    .css-1d391kg { background: #357ABD !important; }
-    </style>
-    """, unsafe_allow_html=True
-)
+# -------------- SIDEBAR ------------------
+st.sidebar.title("KPI Filter")
 
-st.title("🔎 Employee KPI Dashboard")
-st.markdown("##### View and analyze detailed, time-trended employee metrics with rich visualizations.")
+uploaded_file = st.sidebar.file_uploader("Upload Updated_18_KPI_Dashboard.xlsx", type='xlsx')
+if uploaded_file:
+    excel_file = uploaded_file
+else:
+    excel_file = "Updated_18_KPI_Dashboard.xlsx"
 
-excel_file = "Updated_18_KPI_Dashboard.xlsx"
-
-selected_kpi = st.sidebar.selectbox("📊 Select Employee KPI", employee_sheets)
+selected_kpi = st.sidebar.selectbox("Select Employee KPI", employee_sheets)
 df = pd.read_excel(excel_file, sheet_name=selected_kpi)
 
-# Sidebar filter: show employees
-emp_col = "Employee_ID" if "Employee_ID" in df.columns else None
-if emp_col:
-    emp_list = df[emp_col].unique()
-    selected_emp = st.sidebar.selectbox("👤 Select Employee", emp_list)
+emp_col = "Employee_ID"
+has_emp = emp_col in df.columns
+if has_emp:
+    emp_list = sorted(df[emp_col].unique())
+    selected_emp = st.sidebar.selectbox("Select Employee", ["All"] + list(emp_list))
+    if selected_emp != "All":
+        df = df[df[emp_col] == selected_emp]
 
-    emp_df = df[df[emp_col] == selected_emp]
-    st.subheader(f"Details for Employee: `{selected_emp}`")
-else:
-    emp_df = df.copy()
-
-# Time columns auto-detection
+# Auto-detect time and numeric columns
 time_col = next((col for col in df.columns if 'report' in col.lower() or 'week' in col.lower() or 'quarter' in col.lower()), None)
-numeric_cols = emp_df.select_dtypes(include='number').columns.tolist()
-metric_cols = [col for col in numeric_cols if col != time_col]
+numeric_cols = df.select_dtypes(include=np.number).columns.tolist()
+metric_cols = [c for c in numeric_cols if c != time_col]
 
-# Layout - 3 columns for top metrics
-col1, col2, col3 = st.columns([1, 1, 1])
-for i, metric in enumerate(metric_cols[:3]):
-    val = emp_df[metric].mean() if not emp_df.empty else None
-    with [col1, col2, col3][i]:
-        st.metric(label=f"{metric.replace('_',' ').title()}", value=f"{val:,.2f}" if val is not None else '')
+# ---------- HEADER ----------
+st.title("Professional Employee KPI Analytics Dashboard")
+st.markdown("""
+Current period: **April 2025 - September 2025**  
+Explore detailed trends, distributions, and performance recommendations for core employee KPIs.
+""")
 
-st.markdown("---")
+# ---------- KEY METRICS TILES ----------
+def kpi_color(val, reverse=False):
+    # Color scale for green/yellow/red metric cards
+    thresholds = np.nanpercentile(df[val], [30, 70])
+    best = thresholds[1] if reverse else thresholds[0]
+    worst = thresholds[0] if reverse else thresholds[1]
+    avg = np.nanmean(df[val])
+    if avg >= best:
+        return "🟢"
+    elif avg <= worst:
+        return "🔴"
+    else:
+        return "🟡"
 
-# Main Visualization - Multi-graph display
-st.subheader("Employee KPI Trends & Distributions")
+cols = st.columns(len(metric_cols[:4]))
+for i, mc in enumerate(metric_cols[:4]):
+    emoji = kpi_color(mc, reverse="risk" in mc.lower() or "overload" in mc.lower())
+    val = df[mc].mean()
+    st.session_state[mc] = val
+    with cols[i]:
+        st.metric(
+            label=f"{mc.replace('_',' ').title()}",
+            value=f"{val:,.2f}",
+            delta=f"{df[mc].max()-df[mc].min():.2f} peak-to-low",
+            delta_color="normal"
+        )
+        st.markdown(f"{emoji} <small>Avg. last 6 months</small>", unsafe_allow_html=True)
 
-tab1, tab2, tab3 = st.tabs(["Trend Analysis", "Distribution", "Employee Comparison"])
+# Insights & Suggestions
+def gen_insights(df, metric_col):
+    vals = df[metric_col].dropna()
+    if len(vals) < 3:
+        return "Not enough data for insight."
+    trend = np.polyfit(range(len(vals)), vals, 1)[0]
+    recent = vals.iloc[-1]
+    early = vals.iloc[0]
+    pctchange = (recent - early) / abs(early) * 100 if early else np.nan
+    is_good = ('risk' not in metric_col.lower() and 'overload' not in metric_col.lower())
+    insight = ""
+    if np.isnan(pctchange):
+        return "No reliable trend found."
+    if (pctchange > 0 and is_good) or (pctchange < 0 and not is_good):
+        insight = "📈 **Positive trend**: Metric has improved over the period."
+    else:
+        insight = "⚠️ **Warning**: Metric has deteriorated over the period."
+    suggestion = ""
+    if 'risk' in metric_col.lower() or 'overload' in metric_col.lower():
+        if recent > np.nanpercentile(vals, 70):
+            suggestion = "🔺 Try workload balancing or stress reduction interventions."
+        else:
+            suggestion = "✅ Current risk levels are within optimal bounds."
+    elif 'readiness' in metric_col.lower() or 'score' in metric_col.lower():
+        if recent < np.nanpercentile(vals, 30):
+            suggestion = "🔺 Enhance skill training programs and monitor future-skill engagement."
+        else:
+            suggestion = "✅ Readiness score is on track. Continue with ongoing efforts."
+    elif 'wellbeing' in metric_col.lower():
+        if recent < np.nanpercentile(vals, 40):
+            suggestion = "🔺 Employee well-being is suboptimal; consider wellness programs."
+        else:
+            suggestion = "✅ Well-being levels are healthy compared to previous periods."
+    elif 'collaboration' in metric_col.lower():
+        if recent > np.nanpercentile(vals, 70):
+            suggestion = "🔺 Meeting or collaboration overload detected, audit time allocation."
+        else:
+            suggestion = "✅ Collaboration level is balanced."
+    else:
+        if recent < np.nanpercentile(vals, 40):
+            suggestion = "🔺 Monitor metric closely; recent dip detected."
+        else:
+            suggestion = "✅ No anomaly detected."
+    return f"{insight}\n\n{suggestion}"
+
+st.markdown("### 📊 Visualizations & Insights")
+
+# -------- MAIN GRAPHIC AND INSIGHTS ---------
+tab1, tab2, tab3, tab4 = st.tabs(["Trend", "Distribution", "Compare Employees", "Insights & Suggestions"])
 
 with tab1:
-    if time_col and metric_cols:
-        metric_to_plot = st.selectbox("Select Metric to Plot (Trend)", metric_cols, key="trend_metric")
-        fig = px.line(emp_df, x=time_col, y=metric_to_plot,
-                      markers=True,
-                      title=f"{metric_to_plot.replace('_',' ')} over Time",
-                      color_discrete_sequence=px.colors.qualitative.Plotly)
-        fig.update_layout(template='plotly_white', title_x=0.5)
+    metric_to_plot = st.selectbox("Select Metric to Plot (Trend)", metric_cols, key="trend_metric")
+    if time_col and metric_to_plot:
+        fig = px.line(df, x=time_col, y=metric_to_plot, title=f"{metric_to_plot.replace('_',' ')} Trend",
+                      color_discrete_sequence=[COLORS[0]])
+        fig.update_traces(mode="lines+markers", line=dict(width=3))
+        fig.update_layout(template="ggplot2", plot_bgcolor="white", title_x=0.5)
         st.plotly_chart(fig, use_container_width=True)
     else:
-        st.info("Trend chart not available for this metric.")
+        st.info("Trend chart not available.")
 
 with tab2:
     dist_metric = st.selectbox("Select Metric for Distribution", metric_cols, key="dist_metric")
-    fig = px.histogram(emp_df, x=dist_metric,
-                       nbins=20,
-                       title=f"{dist_metric.replace('_',' ')} Distribution",
-                       color_discrete_sequence=['#357ABD'])
-    fig.update_layout(template='plotly_white', title_x=0.5)
+    fig = px.histogram(df, x=dist_metric, nbins=15, title=f"{dist_metric.replace('_',' ')} Distribution", color_discrete_sequence=[COLORS[1]])
+    fig.update_layout(template="simple_white", title_x=0.5)
     st.plotly_chart(fig, use_container_width=True)
 
 with tab3:
-    if emp_col and metric_cols:
-        comp_metric = st.selectbox("Compare Employees by Metric", metric_cols, key="comp_metric")
-        comp_df = df[[emp_col, time_col, comp_metric]].dropna()
-        fig = px.box(comp_df, x=emp_col, y=comp_metric,
-                     color=emp_col,
-                     title=f"{comp_metric.replace('_',' ')} Across Employees",
-                     color_discrete_sequence=px.colors.sequential.Blues)
-        fig.update_layout(template='plotly_white', title_x=0.5)
+    if has_emp and metric_cols:
+        box_metric = st.selectbox("Compare Employees by Metric", metric_cols, key="box_metric")
+        fig = px.box(df, x=emp_col, y=box_metric, color=emp_col, points="all", color_discrete_sequence=COLORS, title=f"{box_metric.replace('_',' ')} Across Employees")
+        fig.update_layout(template="plotly_white", showlegend=False, title_x=0.5)
         st.plotly_chart(fig, use_container_width=True)
     else:
         st.info("No employee comparison available.")
 
+with tab4:
+    st.subheader("Automated Insights")
+    for metric in metric_cols[:4]:
+        st.markdown(f"#### {metric.replace('_',' ').title()}")
+        st.info(gen_insights(df, metric))
+
+# ------- RAW DATA PREVIEW -------
+with st.expander("🔽 See full raw KPI data", expanded=False):
+    st.dataframe(df, use_container_width=True, height=300)
+
 st.markdown("---")
-st.subheader("Raw KPI Data Preview")
-st.dataframe(emp_df, use_container_width=True, height=250)
+st.caption("Dashboard best viewed on a wide screen. Powered by Plotly/Streamlit. Data: Updated_18_KPI_Dashboard.xlsx")
 
-st.success("Tip: Use the sidebar to choose KPIs or filter employees. Click tabs above for more views.\n")
-
+# ------------- PROFESSIONAL COLOR THEMES ------------
 st.markdown(
-    "<style>div.stTabs>div>button[data-baseweb='tab']{background:#D2E2F4;color:#05386B;}</style>",
-    unsafe_allow_html=True
+    """
+    <style>
+    .stApp {background-color: #FAFBFF;}
+    .stMetricLabel, .stMetricValue {color: #1f3a56 !important;}
+    .css-1r6slb0 {background-color: #E9EFFB !important;}
+    .stTabs [data-baseweb="tab-list"] button {background: #335C81 !important; color: #fff;}
+    </style>
+    """,
+    unsafe_allow_html=True,
 )
-
-st.markdown("Data source: [Updated_18_KPI_Dashboard.xlsx](link to your repo)")
