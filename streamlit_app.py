@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 import plotly.express as px
 
+# --- Page Setup ---
 st.set_page_config(page_title="Employee KPI Dashboard", layout="wide", initial_sidebar_state="expanded")
 
 employee_kpi_sheets = [
@@ -14,9 +15,9 @@ employee_kpi_sheets = [
     'High_Value_Work_Ratio',
     'Future_Skill_Readiness_Index'
 ]
-TIME_COLS = ['Reporting_Period','Week_Ending_Date','Quarter','Date']
+TIME_COLS = ['Reporting_Period', 'Week_Ending_Date', 'Quarter', 'Date']
 
-uploaded_file = st.sidebar.file_uploader("Upload Updated_18_KPI_Dashboard.xlsx", type='xlsx')
+uploaded_file = st.sidebar.file_uploader("Upload Updated_18_KPI_Dashboard.xlsx", type="xlsx")
 source_file = uploaded_file if uploaded_file else "Updated_18_KPI_Dashboard.xlsx"
 
 dfs = []
@@ -30,109 +31,105 @@ for sheet in employee_kpi_sheets:
             df['Month'] = df[found_time].astype(str).str[:7]
     else:
         df['Month'] = pd.NA
-    df['KPI_Sheet'] = sheet
     if 'Employee_ID' not in df:
         df['Employee_ID'] = pd.NA
+    df['KPI_Sheet'] = sheet
     dfs.append(df)
 
 full_df = pd.concat(dfs, ignore_index=True)
 full_df['Month'] = full_df['Month'].fillna('Unknown')
 full_df['Employee_ID'] = full_df['Employee_ID'].fillna('Unknown')
 
-periods = sorted([p for p in full_df['Month'].unique() if p and p != 'Unknown'])
-employees = sorted([e for e in full_df['Employee_ID'].unique() if e and e != 'Unknown'])
-metric_cols = [col for col in full_df.select_dtypes(include=np.number).columns if col != 'Employee_ID']
+periods = sorted([p for p in full_df['Month'].unique() if p and str(p).lower() not in ['nat', 'unknown', 'nan']])
+employees = sorted([e for e in full_df['Employee_ID'].unique() if e and str(e).lower() not in ['unknown', 'nan']])
+metric_cols = [col for col in full_df.select_dtypes(np.number).columns if col != 'Employee_ID']
 
-# ---- UI HEADER (mimic SWAST look) ----
+# UI/Brand Header Example
 st.markdown("""
-<div style='text-align:center;padding-top:10px;padding-bottom:5px'>
-    <img src='https://upload.wikimedia.org/wikipedia/commons/f/f5/Emblem_of_India.svg' width='60' style='vertical-align:middle;'>
-    <span style='font-size:2.3em;font-weight:700;padding-left:15px;'>Your Organization - Employee KPI Dashboard</span>
+<div style='display:flex;align-items:center;padding-top:8px'>
+    <img src='https://upload.wikimedia.org/wikipedia/commons/f/f5/Emblem_of_India.svg' width='55'>
+    <span style='font-size:2.4em;font-weight:700;padding:10px 0 0 14px'>Employee KPI Management Dashboard</span>
 </div>
-<div style='text-align:center;font-size:1.1em;color:#666;padding-bottom:20px'>
-    Data period: <b>{0}</b> to <b>{1}</b>
-</div>
-""".format(periods[0] if periods else '', periods[-1] if periods else ''), unsafe_allow_html=True)
-
-# ---- Filter bar ----
-st.markdown("""
-<div style='background:#e4e8ee;border-radius:8px;padding:14px 18px 4px 18px;margin-bottom:12px'>
 """, unsafe_allow_html=True)
-flt_cols = st.columns([2,2])
-with flt_cols[0]:
-    selected_periods = st.multiselect('Select Month(s)', periods, default=periods[-3:] if len(periods)>3 else periods)
-with flt_cols[1]:
-    selected_emps = st.multiselect('Select Employees', employees, default=employees)
-st.markdown("</div>", unsafe_allow_html=True)
 
-filtered_df = full_df[
-    (full_df['Month'].isin(selected_periods)) & 
-    (full_df['Employee_ID'].isin(selected_emps))
-]
+flt_area = st.container()
+with flt_area:
+    col1, col2 = st.columns([2,2])
+    sel_months = col1.multiselect("Select Month(s)", periods, default=periods[-3:] if len(periods)>3 else periods)
+    sel_emps = col2.multiselect("Select Employees", employees, default=employees)
 
+filtered_df = full_df[(full_df['Month'].isin(sel_months)) & (full_df['Employee_ID'].isin(sel_emps))]
 if filtered_df.empty:
-    st.warning("No matching data. Adjust your period or employee selection.")
+    st.warning("No matching data. Adjust your month/employee selection.")
     st.stop()
 
-# ---- Top Summary Cards ----
-st.markdown("<hr />", unsafe_allow_html=True)
-metric_columns = metric_cols[:4]
-card_cols = st.columns(len(metric_columns))
-last_month, prev_month = None, None
-if len(selected_periods) >= 2:
-    last_month, prev_month = selected_periods[-1], selected_periods[-2]
+# --- Top KPI Cards with Deltas ---
+main_metrics = metric_cols[:3]
+delta_cols = st.columns(len(main_metrics))
+sorted_months = sorted(filtered_df['Month'].unique())
+last_month, prev_month = sorted_months[-1], sorted_months[-2] if len(sorted_months)>1 else None
 
-for i, metric in enumerate(metric_columns):
-    # Current and previous month means
-    v, v_prev = np.nan, np.nan
-    if last_month:
-        v = filtered_df[filtered_df['Month'] == last_month][metric].mean()
-    if prev_month:
-        v_prev = filtered_df[filtered_df['Month'] == prev_month][metric].mean()
-    delta = None if pd.isna(v) or pd.isna(v_prev) else v - v_prev
-    color = "#13a813" if delta is not None and delta < 0 else "#d62728"
-    icon = "↓" if delta is not None and delta < 0 else "↑"
-    delta_text = f"{icon} {abs(delta):.1f} vs prev" if delta is not None else "N/A"
-    # Insight sentence
-    if delta is None:
-        insight = "Not enough data to show change."
-    elif delta > 0:
-        insight = "Metric has increased since previous month."
-    elif delta < 0:
-        insight = "Metric has decreased since previous month."
-    else:
-        insight = "No month-on-month change."
-    with card_cols[i]:
-        st.markdown(f"""
-        <div class='kpi-card' style='padding:5px 15px 7px 0'>
-            <span style='font-size:2em;font-weight:700'>{v:.1f}</span>
-            <span style='font-size:1em;font-weight:500'>{metric.replace('_',' ').title()}</span><br>
-            <span style='color:{color}'><b>{delta_text}</b></span>
-            <div style='font-size:0.96em;margin-top:4px;color:#444'>{insight}</div>
-        </div>
-        """, unsafe_allow_html=True)
-
-st.markdown("<hr />", unsafe_allow_html=True)
-
-# ---- Trends and Distributions ----
-for metric in metric_columns:
-    left, right = st.columns([3,2])
-    with left:
-        st.markdown(f"#### {metric.replace('_',' ').title()} by Month, per Employee")
-        chart_df = filtered_df.groupby(['Month','Employee_ID'])[metric].mean().reset_index()
-        fig = px.line(chart_df, x='Month', y=metric, color='Employee_ID',
-                      markers=True, line_shape='linear', template='plotly_white', height=280)
-        st.plotly_chart(fig, use_container_width=True)
-    with right:
-        st.markdown("##### Employee Distribution (last selected month)")
-        box_df = filtered_df[filtered_df['Month']==last_month] if last_month else filtered_df
-        if box_df.empty:
-            st.info("No data for this month.")
+for i, metric in enumerate(main_metrics):
+    v_now = filtered_df[filtered_df['Month'] == last_month][metric].mean() if last_month else np.nan
+    v_prev = filtered_df[filtered_df['Month'] == prev_month][metric].mean() if prev_month else np.nan
+    delta_txt, badge_color = "N/A", "#aaa"
+    if pd.notna(v_now) and pd.notna(v_prev):
+        delta_val = v_now - v_prev
+        if delta_val > 0:
+            delta_txt, badge_color = f"↑ {delta_val:.1f} vs prev", "#d62728"
+        elif delta_val < 0:
+            delta_txt, badge_color = f"↓ {abs(delta_val):.1f} vs prev", "#13a813"
         else:
-            fig2 = px.box(box_df, x='Employee_ID', y=metric, color='Employee_ID', points='outliers', template='plotly_white', height=280)
-            st.plotly_chart(fig2, use_container_width=True)
+            delta_txt, badge_color = "No change", "#888"
+    delta_cols[i].markdown(f"""
+        <div style='font-size:2em;font-weight:700'>{v_now:.1f}</div>
+        <div style='font-weight:400;font-size:1.2em'>{metric.replace('_',' ').title()}</div>
+        <div style='background:{badge_color};padding:4px 12px;border-radius:8px;color:#fff;display:inline-block;margin-top:4px;'>{delta_txt}</div>
+    """, unsafe_allow_html=True)
+
+st.markdown("<hr />", unsafe_allow_html=True)
+
+# --- Chart area: clean, grouped bar, color-mapped bar, summary table ---
+chart_col1, chart_col2, chart_col3 = st.columns([1,1,1])
+
+with chart_col1:
+    # 1. Number of "Completed" or "Active" entries per Month-Employee as bar chart
+    comp_col = main_metrics[0]
+    agg = filtered_df.groupby(['Month','Employee_ID'])[comp_col].mean().reset_index()
+    fig = px.bar(agg, x='Month', y=comp_col, color='Employee_ID', barmode='group', height=320,
+                 title=f"{comp_col.replace('_',' ')} by Month, grouped by Employee")
+    st.plotly_chart(fig, use_container_width=True)
+
+with chart_col2:
+    # 2. Distribution bar: per month (like predicted arrivals, color by month)
+    pred_col = main_metrics[1] if len(main_metrics) > 1 else comp_col
+    agg2 = filtered_df.groupby(['Month'])[pred_col].mean().reset_index()
+    fig2 = px.bar(agg2, x='Month', y=pred_col, color=pred_col, color_continuous_scale='Blues',
+                  title=f"Monthly Avg {pred_col.replace('_',' ')}", height=320)
+    st.plotly_chart(fig2, use_container_width=True)
+
+with chart_col3:
+    # 3. Gradient bar (average duration or other target, with color mapping, target line)
+    dur_col = main_metrics[2] if len(main_metrics) > 2 else comp_col
+    agg3 = filtered_df.groupby(['Month'])[dur_col].mean().reset_index()
+    fig3 = px.bar(agg3, x='Month', y=dur_col, color=dur_col, color_continuous_scale='sunset',
+                  title=f"Avg {dur_col.replace('_',' ')} with Target", height=320)
+    # Add reference/target line (example target = avg of all months or set value)
+    target_val = filtered_df[dur_col].mean()
+    fig3.add_shape(type="line",
+        x0=0, x1=len(agg3)-1, y0=target_val, y1=target_val,
+        line=dict(color="black", width=2), xref="x", yref="y"
+    )
+    fig3.add_trace(px.line(agg3, x='Month', y=[target_val]*len(agg3)).data[0])
+    st.plotly_chart(fig3, use_container_width=True)
 
 st.markdown("---")
-st.subheader("Raw KPI Data")
-st.dataframe(filtered_df, use_container_width=True)
-st.download_button("Download Filtered Data as CSV", filtered_df.to_csv(index=False), "filtered_employee_kpis.csv")
+
+# --- Summary Table ("Current status") ---
+st.subheader("Employee KPI Monthly Summary")
+summary_table = filtered_df.groupby(['Month','Employee_ID'])[main_metrics].mean()
+st.dataframe(summary_table.round(2), use_container_width=True)
+st.download_button("Download as CSV", summary_table.to_csv(), "kpi_monthly_summary.csv")
+
+# --- Optional: expand for other charts or raw data table below ---
+
