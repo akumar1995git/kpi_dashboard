@@ -3,7 +3,6 @@ import pandas as pd
 import numpy as np
 import plotly.express as px
 
-# Page config and theme friendly styling
 st.set_page_config(page_title="Employee KPI Analytics Suite", layout="wide", initial_sidebar_state="expanded")
 
 st.markdown("""
@@ -16,31 +15,41 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 employee_sheets = [
-    'Role_vs_Reality_Analysis','Hidden_Capacity_Burnout_Risk','Work_Models_Effectiveness',
-    'Digital_Collaboration_Overload','Digital_Wellbeing_Index','Data_Driven_Skill_Gap_Analysis',
-    'High_Value_Work_Ratio','Future_Skill_Readiness_Index','Shadow_IT_Risk_Score'
+    'Role_vs_Reality_Analysis',
+    'Hidden_Capacity_Burnout_Risk',
+    'Work_Models_Effectiveness',
+    'Digital_Collaboration_Overload',
+    'Digital_Wellbeing_Index',
+    'Data_Driven_Skill_Gap_Analysis',
+    'High_Value_Work_Ratio',
+    'Future_Skill_Readiness_Index',
+    'Shadow_IT_Risk_Score'
 ]
 
 uploaded_file = st.sidebar.file_uploader("Upload Updated_18_KPI_Dashboard.xlsx", type='xlsx')
-source_file = uploaded_file if uploaded_file else 'Updated_18_KPI_Dashboard.xlsx'
+source_file = uploaded_file if uploaded_file else "Updated_18_KPI_Dashboard.xlsx"
 
-# Load all employee KPI sheets then concatenate them
+time_col_candidates = ['Reporting_Period', 'Week_Ending_Date', 'Date', 'Quarter']
+
 all_dfs = []
 for sheet in employee_sheets:
     df = pd.read_excel(source_file, sheet_name=sheet)
+    valid_time_cols = [col for col in time_col_candidates if col in df.columns]
+    if valid_time_cols:
+        df.rename(columns={valid_time_cols[0]: 'Reporting_Period'}, inplace=True)
+    else:
+        df['Reporting_Period'] = pd.NA
     df['KPI_Sheet'] = sheet
     all_dfs.append(df)
 
 full_df = pd.concat(all_dfs, ignore_index=True)
 
-# Extract columns
+time_col = 'Reporting_Period'
 emp_col = 'Employee_ID'
-time_col = next((c for c in full_df.columns if any(x in c.lower() for x in ['report', 'week', 'date', 'quarter'])), None)
 metric_cols = [col for col in full_df.select_dtypes(include=np.number).columns if col not in [emp_col, time_col]]
 
-# Sidebar Filters
-periods = sorted(full_df[time_col].unique()) if time_col else []
-employees = sorted(full_df[emp_col].unique()) if emp_col else []
+periods = sorted(full_df[time_col].dropna().unique())
+employees = sorted(full_df[emp_col].dropna().unique())
 
 with st.container():
     st.title("Employee KPI Analytics Dashboard")
@@ -50,10 +59,8 @@ with st.container():
     with filters[1]:
         selected_emps = st.multiselect('Choose Employees', employees, default=employees)
 
-# Filter dataframe
-filtered_df = full_df[full_df[time_col].isin(selected_periods) & full_df[emp_col].isin(selected_emps)]
+filtered_df = full_df[(full_df[time_col].isin(selected_periods)) & (full_df[emp_col].isin(selected_emps))]
 
-# Summary Metrics
 st.subheader("Key Metrics Overview")
 metric_columns = metric_cols[:5] if len(metric_cols) >= 5 else metric_cols
 cols = st.columns(len(metric_columns))
@@ -68,8 +75,8 @@ for i, metric in enumerate(metric_columns):
 
 st.markdown("---")
 
-# Trends dashboard
 st.subheader("Time-based Metric Trends")
+
 for metric in metric_columns:
     st.markdown(f"### {metric.replace('_', ' ').title()}")
     fig = px.line(filtered_df, x=time_col, y=metric, color=emp_col, markers=True, title=f"{metric} over Time")
@@ -78,8 +85,8 @@ for metric in metric_columns:
 
 st.markdown("---")
 
-# Comparison by Employees
 st.subheader("Employee-wise Metric Comparison")
+
 for metric in metric_columns:
     st.markdown(f"### {metric.replace('_', ' ').title()}")
     fig = px.box(filtered_df, x=emp_col, y=metric, color=emp_col, points='all', title=f"Distribution of {metric} by Employee")
@@ -87,10 +94,6 @@ for metric in metric_columns:
     st.plotly_chart(fig, use_container_width=True)
 
 st.markdown("---")
-
-# Raw Data View
 st.subheader("Raw KPI Data")
 st.dataframe(filtered_df, use_container_width=True)
-
-# Download filtered data as CSV
 st.download_button("Download Filtered Data as CSV", filtered_df.to_csv(index=False), "filtered_employee_kpis.csv")
