@@ -3,18 +3,12 @@ import pandas as pd
 import numpy as np
 import plotly.express as px
 
-st.set_page_config(page_title="Employee KPI Analytics Suite", layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(page_title="Employee KPI Dashboard", layout="wide", initial_sidebar_state="expanded")
 
-st.markdown("""
-<style>
-[data-testid="stSidebar"] > div { background: #204051; color: #fff }
-.stApp, .main, .block-container { background: #f7f9fc; }
-.big-metric {font-size: 2em;font-weight:700; padding:18px 0 6px 0;}
-.stMetricLabel, .stMetricValue {color: #101820 !important;}
-</style>
-""", unsafe_allow_html=True)
+uploaded_file = st.sidebar.file_uploader("Upload Updated_18_KPI_Dashboard.xlsx", type='xlsx')
+source_file = uploaded_file if uploaded_file else "Updated_18_KPI_Dashboard.xlsx"
 
-employee_sheets = [
+employee_kpi_sheets = [
     'Role_vs_Reality_Analysis',
     'Hidden_Capacity_Burnout_Risk',
     'Work_Models_Effectiveness',
@@ -26,13 +20,10 @@ employee_sheets = [
     'Shadow_IT_Risk_Score'
 ]
 
-uploaded_file = st.sidebar.file_uploader("Upload Updated_18_KPI_Dashboard.xlsx", type='xlsx')
-source_file = uploaded_file if uploaded_file else "Updated_18_KPI_Dashboard.xlsx"
-
 time_col_candidates = ['Reporting_Period', 'Week_Ending_Date', 'Date', 'Quarter']
 
 all_dfs = []
-for sheet in employee_sheets:
+for sheet in employee_kpi_sheets:
     df = pd.read_excel(source_file, sheet_name=sheet)
     valid_time_cols = [col for col in time_col_candidates if col in df.columns]
     if valid_time_cols:
