@@ -3,19 +3,7 @@ import pandas as pd
 import numpy as np
 import plotly.express as px
 
-# --- Page and style ---
 st.set_page_config(page_title="Employee KPI Analytics", layout="wide", initial_sidebar_state="expanded")
-st.markdown(
-    """
-    <style>
-    .big-title {font-size:2.5em;font-weight:700;margin-bottom:-12px;}
-    .kpi-card {padding:8px 15px 0 0;}
-    .delta-green {color: #13a813;}
-    .delta-red {color: #d62728;}
-    hr {margin:2em 0;}
-    </style>
-    """, unsafe_allow_html=True
-)
 
 employee_kpi_sheets = [
     'Role_vs_Reality_Analysis',
@@ -26,96 +14,96 @@ employee_kpi_sheets = [
     'High_Value_Work_Ratio',
     'Future_Skill_Readiness_Index'
 ]
-
 TIME_COLS = ['Reporting_Period','Week_Ending_Date','Quarter','Date']
 
 uploaded_file = st.sidebar.file_uploader("Upload Updated_18_KPI_Dashboard.xlsx", type='xlsx')
 source_file = uploaded_file if uploaded_file else "Updated_18_KPI_Dashboard.xlsx"
 
-# --- Load, standardize, concat ---
-dfs = []
+all_dfs = []
 for sheet in employee_kpi_sheets:
-    df = pd.read_excel(source_file, sheet_name=sheet)
-    # Pick preferred time col, rename as 'Time_Period'
-    found = next((c for c in TIME_COLS if c in df.columns), None)
-    if found:
-        df = df.rename(columns={found:'Time_Period'})
-    else:
-        df['Time_Period'] = np.nan
-    df['KPI_Sheet'] = sheet
-    dfs.append(df)
-full_df = pd.concat(dfs, ignore_index=True)
+    try:
+        df = pd.read_excel(source_file, sheet_name=sheet)
+        found_time = next((c for c in TIME_COLS if c in df.columns), None)
+        found_emp = next((c for c in ['Employee_ID','Emp_ID','ID'] if c in df.columns), None)
+        if not found_time:
+            df['Reporting_Period'] = pd.NA
+        else:
+            df = df.rename(columns={found_time:'Reporting_Period'})
+        if not found_emp:
+            df['Employee_ID'] = pd.NA
+        else:
+            df = df.rename(columns={found_emp:'Employee_ID'})
+        df['KPI_Sheet'] = sheet
+        all_dfs.append(df)
+    except Exception as e:
+        st.warning(f"Failed to load sheet {sheet}: {e}")
 
-emp_col = 'Employee_ID'
-periods = sorted(full_df['Time_Period'].dropna().unique())
-employees = sorted(full_df[emp_col].dropna().unique())
-metrics = [c for c in full_df.select_dtypes(np.number).columns if c not in ['Time_Period',emp_col]]
+if not all_dfs:
+    st.error("No employee KPI data loaded. Check file upload or file contents.")
+    st.stop()
 
-# ----------------
-# HEADER
-# ----------------
-logo_url = "https://upload.wikimedia.org/wikipedia/commons/f/f5/Emblem_of_India.svg"  # Example: Replace with your branding/logo
-cols = st.columns([1,8])
-with cols[0]: st.image(logo_url, width=60)
-with cols[1]:
-    st.markdown('<div class="big-title">Your Organization - Employee KPI Report</div>', unsafe_allow_html=True)
-    st.caption("Contact: helpdesk@example.com |  Data refreshed automatically | Powered by Streamlit")
+full_df = pd.concat(all_dfs, ignore_index=True)
+full_df['Reporting_Period'] = full_df['Reporting_Period'].astype(str)
+full_df['Employee_ID'] = full_df['Employee_ID'].astype(str)
+emp_col='Employee_ID'
+time_col='Reporting_Period'
+metric_cols = [col for col in full_df.select_dtypes(include=np.number).columns if col not in [emp_col]]
 
-# ----------------
-# FILTERS
-# ----------------
+periods = sorted([p for p in full_df[time_col].dropna().unique() if str(p).lower()!='nan'])
+employees = sorted([e for e in full_df[emp_col].dropna().unique() if str(e).lower()!='nan'])
+
 with st.container():
-    flt = st.columns([2,2,6])
-    periods_sel = flt[0].multiselect("Period", periods, default=periods[-3:] if len(periods)>2 else periods)
-    emps_sel = flt[1].multiselect("Employee", employees, default=employees)
-    # Optionally filter by KPI
-    # kpi_sel = flt[2].multiselect("KPI", employee_kpi_sheets, default=employee_kpi_sheets)
-    # full_df = full_df[full_df['KPI_Sheet'].isin(kpi_sel)]
-filtered = full_df[full_df['Time_Period'].isin(periods_sel) & full_df[emp_col].isin(emps_sel)]
+    st.title("Employee KPI Analytics Dashboard")
+    filters = st.columns([2,2])
+    with filters[0]:
+        selected_periods = st.multiselect('Choose Period', periods, default=periods if periods else [])
+    with filters[1]:
+        selected_emps = st.multiselect('Choose Employees', employees, default=employees if employees else [])
 
-# ----------------
-# TOP SUMMARY Cards (pick most actionable metrics)
-# ----------------
-show_metrics = metrics[:3]  # Change for your target metrics
-curr, prev = filtered[metrics].mean(), filtered[metrics].shift(1).mean()
-summary = st.columns(len(show_metrics))
-for i,m in enumerate(show_metrics):
-    v, v_prev = curr.get(m,0), prev.get(m,0)
-    delta = v-v_prev if not pd.isna(v_prev) else 0
-    delta_arrow = "↓" if delta < 0 else "↑"
-    delta_style = "delta-green" if delta < 0 else "delta-red"
-    summary[i].markdown(f"""
-    <div class="kpi-card">
-    <span style="font-size:2em;font-weight:600">{v:.1f}</span><br>
-    <span style="font-size:1em;font-weight:500">{m.replace('_',' ').title()}</span><br>
-    <span class="{delta_style}">{delta_arrow} {abs(delta):.1f} compared to previous</span>
-    </div>
-    """, unsafe_allow_html=True)
+if not selected_periods or not selected_emps:
+    st.warning("No periods or employees selected (or detected).")
+    st.stop()
 
-st.markdown("<hr />", unsafe_allow_html=True)
+filtered_df = full_df[
+    (full_df[time_col].isin(selected_periods)) &
+    (full_df[emp_col].isin(selected_emps))
+]
 
-# ----------------
-# INSIGHTFUL CHARTS (no pie, no clutter)
-# ----------------
-for sheet in employee_kpi_sheets:
-    dfi = filtered[filtered['KPI_Sheet']==sheet]
-    st.header(sheet.replace('_',' '))
-    # Trend over time
-    timec = 'Time_Period'
-    kc = [c for c in dfi.select_dtypes(np.number).columns if c not in ['Time_Period',emp_col]]
-    if not dfi.empty and timec in dfi.columns and kc:
-        c = kc[0]
-        fig = px.bar(dfi, x=timec, y=c, color=emp_col, barmode='group', height=250,
-                    title=f"{c.replace('_',' ')} by Period and Employee", color_discrete_sequence=px.colors.qualitative.Safe)
-        st.plotly_chart(fig, use_container_width=True)
-    # Per-employee distribution
-    if not dfi.empty and kc:
-        c = kc[0]
-        fig2 = px.box(dfi, x=emp_col, y=c, color=emp_col, title=f"{c.replace('_',' ')} Distribution by Employee",
-                      points='outliers', color_discrete_sequence=px.colors.qualitative.Plotly)
-        st.plotly_chart(fig2, use_container_width=True)
+if filtered_df.empty:
+    st.warning("No matching data after filtering. Please review your Excel source and selection filters.")
+    st.stop()
+
+# Summary Cards
+metric_columns = metric_cols[:5]
+cols = st.columns(len(metric_columns))
+for i, metric in enumerate(metric_columns):
+    mean = filtered_df[metric].mean()
+    minv = filtered_df[metric].min()
+    maxv = filtered_df[metric].max()
+    with cols[i]:
+        st.markdown(f"<div class='big-metric'>{mean:.2f}</div>", unsafe_allow_html=True)
+        st.markdown(f"**{metric.replace('_',' ').title()}**")
+        st.caption(f"Min: {minv:.1f} | Max: {maxv:.1f}")
 
 st.markdown("---")
-st.subheader("Raw Data")
-st.dataframe(filtered, use_container_width=True, height=350)
-st.download_button("Download current table as CSV", filtered.to_csv(index=False), "filtered_kpis.csv")
+
+# Time trend chart per metric
+for metric in metric_columns:
+    st.markdown(f"### {metric.replace('_',' ').title()}")
+    fig = px.line(filtered_df, x=time_col, y=metric, color=emp_col, markers=True, title=f"{metric} over Time")
+    fig.update_layout(template='plotly_white')
+    st.plotly_chart(fig, use_container_width=True)
+
+st.markdown("---")
+
+# Employee boxplot
+for metric in metric_columns:
+    st.markdown(f"### {metric.replace('_',' ').title()} by Employee")
+    fig = px.box(filtered_df, x=emp_col, y=metric, color=emp_col, points='outliers', title=f"{metric} by Employee")
+    fig.update_layout(template='plotly_white', showlegend=False)
+    st.plotly_chart(fig, use_container_width=True)
+
+st.markdown("---")
+st.subheader("Raw KPI Data")
+st.dataframe(filtered_df, use_container_width=True)
+st.download_button("Download Filtered Data as CSV", filtered_df.to_csv(index=False), "filtered_employee_kpis.csv")
