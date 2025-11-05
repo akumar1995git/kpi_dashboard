@@ -3,97 +3,143 @@ import pandas as pd
 import numpy as np
 import plotly.express as px
 
-# Page setup with theme friendly styling
-st.set_page_config(page_title="Employee KPI Dashboard - Modern View", layout="wide", initial_sidebar_state="expanded")
+# ----------------------------------
+# Page config and style
+# ----------------------------------
+st.set_page_config(
+    page_title="Employee KPI Analytics Suite",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
 
 st.markdown("""
-    <style>
-    .stApp, .main, .block-container {background-color: #f5f7fa; color: #0E1117;}
-    .stMetricLabel, .stMetricValue {color: #0E1117 !important;}
-    .stButton>button {background-color: #2A5599 !important; color: white !important;}
-    .stSelectbox>div>div>div>select, .stSelectbox>div>div>div>option {background-color:#d0e0fa; color:#0E1117;}
-    .css-1r6slb0 {background-color:#dde9fa !important;}
-    .stTabs [data-baseweb="tab-list"] button {background-color:#2A5599 !important; color:#fff; font-weight:bold;}
-    .plotly-graph-div {background-color: white !important;}
-    </style>
+<style>
+[data-testid="stSidebar"] > div { background: #204051; color: #fff }
+.stApp, .main, .block-container { background: #f7f9fc; }
+.big-metric {font-size: 2em;font-weight:700; padding:18px 0 6px 0;}
+.stMetricLabel, .stMetricValue {color: #101820 !important;}
+</style>
 """, unsafe_allow_html=True)
 
+# ----------------------------------
+# Data & Navigation
+# ----------------------------------
 employee_sheets = [
-    'Role_vs_Reality_Analysis',
-    'Hidden_Capacity_Burnout_Risk',
-    'Work_Models_Effectiveness',
-    'Digital_Collaboration_Overload',
-    'Digital_Wellbeing_Index',
-    'Data_Driven_Skill_Gap_Analysis',
-    'High_Value_Work_Ratio',
-    'Future_Skill_Readiness_Index',
-    'Shadow_IT_Risk_Score'
+    'Role_vs_Reality_Analysis','Hidden_Capacity_Burnout_Risk','Work_Models_Effectiveness',
+    'Digital_Collaboration_Overload','Digital_Wellbeing_Index','Data_Driven_Skill_Gap_Analysis',
+    'High_Value_Work_Ratio','Future_Skill_Readiness_Index','Shadow_IT_Risk_Score'
 ]
 
+# Sidebar Nav
+menu = ["Summary", "Trends", "Compare Employees", "Raw Data"]
+choice = st.sidebar.radio("Navigation", menu, index=0)
+
 uploaded_file = st.sidebar.file_uploader("Upload Updated_18_KPI_Dashboard.xlsx", type='xlsx')
-df_path = uploaded_file if uploaded_file else "Updated_18_KPI_Dashboard.xlsx"
+source_file = uploaded_file if uploaded_file else "Updated_18_KPI_Dashboard.xlsx"
 
-selected_kpis = st.sidebar.multiselect("Select KPIs to Display as Charts", employee_sheets, default=employee_sheets[:3])
+kpi_sheet = st.sidebar.selectbox("Select KPI", employee_sheets)
+df = pd.read_excel(source_file, sheet_name=kpi_sheet)
 
-dfs = {}
-for kpi in selected_kpis:
-    try:
-        dfs[kpi] = pd.read_excel(df_path, sheet_name=kpi)
-    except Exception as e:
-        st.sidebar.error(f"Error loading {kpi}: {str(e)}")
+# Extract dimension columns
+time_col = next((c for c in df.columns if any(x in c.lower() for x in ["report", "week", "date", "quarter"])), None)
+emp_col = "Employee_ID" if "Employee_ID" in df.columns else None
+metric_cols = [col for col in df.select_dtypes(include=np.number).columns if col != time_col]
 
-# Get combined employee list
-all_emps = sorted(set(emp for df in dfs.values() if 'Employee_ID' in df.columns for emp in df['Employee_ID']))
+# Top filters – period, employee (multi)
+with st.container():
+    st.title("Employee KPI Analytics Dashboard")
+    filters = st.columns([2, 2, 4])
+    period_vals = sorted(df[time_col].unique()) if time_col else []
+    emp_vals = sorted(df[emp_col].unique()) if emp_col else []
 
-selected_employees = st.sidebar.multiselect("Select Employees to Analyze", all_emps, default=all_emps[:5])
+    with filters[0]:
+        if period_vals:
+            period_sel = st.multiselect('Choose Period', period_vals, default=period_vals)
+            df = df[df[time_col].isin(period_sel)]
+    with filters[1]:
+        if emp_col:
+            emp_sel = st.multiselect('Choose Employees', emp_vals, default=emp_vals)
+            df = df[df[emp_col].isin(emp_sel)]
 
-def plot_sparkline(df, time_col, metric_col, employee):
-    emp_df = df[df["Employee_ID"] == employee]
-    if emp_df.empty:
-        return None
-    emp_df = emp_df.sort_values(time_col)
-    fig = px.line(emp_df, x=time_col, y=metric_col, markers=True)
-    fig.update_layout(
-        height=160, margin=dict(l=10, r=10, t=20, b=30),
-        xaxis=dict(showgrid=False, showticklabels=False),
-        yaxis=dict(showgrid=False, showticklabels=False),
-        template='plotly_white',
-        font=dict(size=11)
-    )
-    return fig
+# ----------------------------------
+# SUMMARY DASHBOARD
+# ----------------------------------
+if choice == "Summary":
+    st.subheader("Key Metrics Overview")
+    metric_cards = st.columns(min(4, len(metric_cols)))
+    for i, metric in enumerate(metric_cols[:4]):
+        card_avg = df[metric].mean() if not df.empty else 0
+        card_max = df[metric].max() if not df.empty else 0
+        card_min = df[metric].min() if not df.empty else 0
+        with metric_cards[i]:
+            st.markdown(f"<div class='big-metric'>{card_avg:.2f}</div>", unsafe_allow_html=True)
+            st.markdown(f"**{metric.replace('_',' ').title()}**")
+            st.caption(f"Min: {card_min:.1f} | Max: {card_max:.1f}")
 
-st.title("Employee KPI Dashboard — Modern Multi-Chart Grid")
+    st.markdown("---")
+    st.subheader("Metric Distribution Snapshot")
+    col_summ = st.columns(3)
+    for i, metric in enumerate(metric_cols[:3]):
+        with col_summ[i]:
+            chart = px.histogram(df, x=metric, nbins=20, color_discrete_sequence=['#005b96'])
+            chart.update_layout(height=200, margin=dict(l=10, r=10, t=30, b=30), template='simple_white', title=metric.replace('_',' '))
+            st.plotly_chart(chart, use_container_width=True)
 
-if not dfs:
-    st.warning("Upload file or pick KPIs from sidebar to begin.")
-    st.stop()
+# ----------------------------------
+# TRENDS
+# ----------------------------------
+elif choice == "Trends":
+    st.subheader("Time-based Trends")
+    if time_col:
+        selected_metric = st.selectbox("Which metric?", metric_cols)
+        fig = px.line(df, x=time_col, y=selected_metric, color=emp_col if emp_col else None,
+            markers=True, line_shape="linear", color_discrete_sequence=px.colors.qualitative.Safe,
+            title=f"{selected_metric.replace('_',' ')} Over Time")
+        fig.update_layout(template="plotly_white", title_x=0.5)
+        st.plotly_chart(fig, use_container_width=True)
+    else:
+        st.warning("No time column detected in data.")
 
-for kpi, df in dfs.items():
-    st.subheader(kpi.replace("_", " "))
-    time_candidate = next((c for c in df.columns if 'report' in c.lower() or 'week' in c.lower() or 'quarter' in c.lower()), None)
-    if time_candidate is None or 'Employee_ID' not in df.columns:
-        st.write("Unable to plot this KPI due to missing time or employee column.")
-        continue
+# ----------------------------------
+# EMPLOYEE COMPARISON
+# ----------------------------------
+elif choice == "Compare Employees":
+    st.subheader("Employee Metric Comparison")
+    if emp_col:
+        comp_metric = st.selectbox("Choose metric to compare", metric_cols)
+        display_mode = st.radio("Bar or Box plot", ["Bar", "Box"], key="compare_mode")
+        group_df = df.groupby(emp_col)[comp_metric].mean().reset_index() if display_mode == "Bar" else df
+        if display_mode == "Bar":
+            fig = px.bar(group_df, x=emp_col, y=comp_metric, title=f"Average {comp_metric.replace('_',' ')} per Employee",
+                         color=comp_metric, color_continuous_scale="Magma")
+        else:
+            fig = px.box(group_df, x=emp_col, y=comp_metric, color=emp_col, title=f"{comp_metric.replace('_',' ')} Distribution Across Employees",
+                         points="all", color_discrete_sequence=px.colors.qualitative.Bold)
+        fig.update_layout(template="plotly_white", title_x=0.5, showlegend=False)
+        st.plotly_chart(fig, use_container_width=True)
+    else:
+        st.warning("Employee identifier column not found.")
 
-    metric_options = [c for c in df.columns if c not in ['Employee_ID', time_candidate] and pd.api.types.is_numeric_dtype(df[c])]
-    if not metric_options:
-        st.write("No numerical metric columns found for this KPI.")
-        continue
+    # Optional: Heatmap for multi-metric/employee comparison
+    st.markdown("#### Multi-metric Correlation (employees × KPIs)")
+    if len(metric_cols) > 1 and emp_col:
+        pivot_df = df.pivot_table(index=emp_col, values=metric_cols, aggfunc='mean')
+        fig = px.imshow(pivot_df, color_continuous_scale="YlGnBu", aspect="auto",
+                        labels=dict(color="Value"))
+        fig.update_layout(height=400)
+        st.plotly_chart(fig, use_container_width=True)
 
-    cols = st.columns(len(metric_options))
-    for idx, metric in enumerate(metric_options):
-        with cols[idx]:
-            st.markdown(f"**{metric.replace('_', ' ')}**")
+# ----------------------------------
+# RAW DATA
+# ----------------------------------
+elif choice == "Raw Data":
+    st.subheader("Raw Data View")
+    st.dataframe(df, use_container_width=True)
 
-            for emp in selected_employees:
-                fig = plot_sparkline(df, time_candidate, metric, emp)
-                if fig:
-                    st.plotly_chart(fig, use_container_width=True)
-                else:
-                    st.write(f"No data for {emp}")
+    # Download button
+    st.download_button("Download filtered data as CSV", df.to_csv(index=False), file_name=f"{kpi_sheet}_filtered.csv")
 
-st.markdown("---")
-with st.expander("Raw data view"):
-    for kpi, df in dfs.items():
-        st.subheader(kpi.replace("_", " "))
-        st.dataframe(df[df['Employee_ID'].isin(selected_employees)] if 'Employee_ID' in df.columns else df, height=200)
+# ------------ Additional Files (Optional) ------------#
+# If you want color configs, documentation, or config values for branding,
+# add a config.py or markdown doc and import/load in your app as needed.
+
