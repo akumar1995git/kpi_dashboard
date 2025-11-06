@@ -11,17 +11,13 @@ st.title("📊 KPI Dashboard")
 @st.cache_data
 def load_data(uploaded_file=None):
     if uploaded_file is not None:
-        file_name = uploaded_file.name.lower()
-        if file_name.endswith('.xlsx') or file_name.endswith('.xls'):
+        if uploaded_file.name.endswith(('.xlsx', '.xls')):
             df = pd.read_excel(uploaded_file)
         else:
             df = pd.read_csv(uploaded_file)
     else:
-        # Default: load from local Excel/CSV file in the same directory
-        try:
-            df = pd.read_excel("Updated_18_KPI_Metrics.xlsx")
-        except Exception:
-            df = pd.read_csv("Updated_18_KPI_Metrics.csv")
+        df = pd.read_excel("Updated_18_KPI_Metrics.xlsx")  # << correct line
+    return df
     
     # Try to parse potential date columns
     for col in df.columns:
