@@ -1,168 +1,131 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-import numpy as np
+import os
 
-# ========== PAGE CONFIG ==========
-st.set_page_config(page_title="KPI Dashboard", layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(page_title="Employee KPI Dashboard", layout="wide")
+
+# ========================
+# Load Excel Data
+# ========================
+@st.cache_data
+def load_data():
+    file_path = "Updated_18_KPI_Dashboard.xlsx"
+    if not os.path.exists(file_path):
+        st.error(f"File '{file_path}' not found. Please upload it.")
+        st.stop()
+    xls = pd.ExcelFile(file_path)
+    sheets = {sheet: pd.read_excel(xls, sheet_name=sheet) for sheet in xls.sheet_names}
+    return sheets
+
+data_sheets = load_data()
+
+# ========================
+# Sidebar
+# ========================
+st.sidebar.header("🔍 Filters")
+
+sheet_name = st.sidebar.selectbox("Select Department/Sheet", list(data_sheets.keys()))
+df = data_sheets[sheet_name]
+
+# Validate data
+if "Employee_ID" not in df.columns or "Reporting_Period" not in df.columns:
+    st.error("The sheet must have 'Employee_ID' and 'Reporting_Period' columns.")
+    st.stop()
+
+df["Reporting_Period"] = pd.to_datetime(df["Reporting_Period"])
+
+employees = sorted(df["Employee_ID"].unique())
+selected_employee = st.sidebar.multiselect("Select Employees", employees, default=employees)
+filtered_df = df[df["Employee_ID"].isin(selected_employee)]
+
+metric_cols = [col for col in df.columns if col not in ["Employee_ID", "Reporting_Period"]]
+selected_metric = st.sidebar.selectbox("Select KPI Metric", metric_cols)
+
+# ========================
+# Dashboard Header
+# ========================
 st.markdown(
     """
-    <style>
-        /* Global style */
-        body {font-family: 'Inter', sans-serif;}
-        .block-container {padding-top: 1rem; padding-bottom: 1rem;}
-
-        /* KPI Cards */
-        div[data-testid="metric-container"] {
-            background: #f8f9fa;
-            border: 1px solid #ddd;
-            padding: 20px;
-            border-radius: 12px;
-            box-shadow: 1px 1px 4px rgba(0,0,0,0.05);
-        }
-        div[data-testid="metric-container"] > label {
-            font-weight: 600;
-        }
-
-        /* Section Titles */
-        h2, h3 {
-            border-left: 4px solid #4F8BF9;
-            padding-left: 8px;
-        }
-    </style>
+    <h2 style='text-align:center; color:#1E3A8A;'>
+    📊 Employee KPI Performance Dashboard
+    </h2>
     """,
     unsafe_allow_html=True
 )
 
-st.markdown("<h1 style='text-align:left'>📊 Employee KPI Dashboard</h1>", unsafe_allow_html=True)
+# ========================
+# KPI Summary Cards
+# ========================
+latest_period = filtered_df["Reporting_Period"].max()
+previous_period = filtered_df["Reporting_Period"].sort_values().unique()[-2] if len(filtered_df["Reporting_Period"].unique()) > 1 else None
 
-# ========== LOAD ALL SHEETS ==========
-@st.cache_data
-def load_all_sheets(path="Updated_18_KPI_Dashboard.xlsx"):
-    xls = pd.ExcelFile(path)
-    sheets = {}
-    for name in xls.sheet_names:
-        df = pd.read_excel(xls, sheet_name=name)
-        df.columns = [c.strip() if isinstance(c, str) else c for c in df.columns]
-        rp_cols = [c for c in df.columns if "report" in str(c).lower() or "period" in str(c).lower() or "date" in str(c).lower()]
-        if rp_cols:
-            col = rp_cols[0]
-            df[col] = pd.to_datetime(df[col], errors="coerce")
-        sheets[name] = df
-    return sheets
+current_df = filtered_df[filtered_df["Reporting_Period"] == latest_period]
+previous_df = filtered_df[filtered_df["Reporting_Period"] == previous_period] if previous_period else None
 
-sheets = load_all_sheets()
+summary = []
+for metric in metric_cols:
+    current_avg = current_df[metric].mean()
+    prev_avg = previous_df[metric].mean() if previous_df is not None else current_avg
+    change = current_avg - prev_avg
+    direction = "🟢▲ Improved" if change > 0 else "🔴▼ Declined" if change < 0 else "🟡 No Change"
+    summary.append((metric, round(current_avg, 2), direction))
 
-# ========== SIDEBAR ==========
-st.sidebar.header("🔧 Filters & Settings")
-sheet_name = st.sidebar.selectbox("Select Department Sheet", list(sheets.keys()))
-df = sheets[sheet_name].copy()
+st.markdown("### 📈 Summary Overview")
+cols = st.columns(3)
+for i, (metric, avg, direction) in enumerate(summary):
+    with cols[i % 3]:
+        st.markdown(
+            f"""
+            <div style="background-color:#F9FAFB;padding:20px;border-radius:15px;
+            box-shadow:1px 2px 5px rgba(0,0,0,0.1);margin-bottom:10px;">
+            <h4 style="color:#2563EB;">{metric}</h4>
+            <h2 style="margin:0;">{avg}</h2>
+            <p style="color:#10B981;">{direction}</p>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
 
-EMP_COL = "Employee_ID" if "Employee_ID" in df.columns else next((c for c in df.columns if "employee" in str(c).lower()), df.columns[0])
-RP_COL = next((c for c in df.columns if "report" in str(c).lower() or "period" in str(c).lower() or "date" in str(c).lower()), None)
+# ========================
+# Main KPI Chart
+# ========================
+st.markdown(f"### 📊 {selected_metric} over Time")
 
-# Ensure Reporting_Period is datetime
-if RP_COL and not pd.api.types.is_datetime64_any_dtype(df[RP_COL]):
-    df[RP_COL] = pd.to_datetime(df[RP_COL], errors="coerce")
+chart_type = "bar" if any(word in selected_metric.lower() for word in ["count", "num", "total", "hours", "rating"]) else "line"
 
-numeric_cols = df.select_dtypes(include="number").columns.tolist()
-numeric_cols = [c for c in numeric_cols if c not in [EMP_COL, RP_COL]]
-
-# Sidebar filters
-employees = ["All"] + sorted(df[EMP_COL].dropna().astype(str).unique().tolist())
-selected_employee = st.sidebar.selectbox("Select Employee", employees, index=0)
-
-if RP_COL:
-    min_date, max_date = df[RP_COL].min().date(), df[RP_COL].max().date()
-    date_range = st.sidebar.date_input("Reporting Period", (min_date, max_date))
-    if len(date_range) == 2:
-        start, end = pd.to_datetime(date_range[0]), pd.to_datetime(date_range[1])
-        df = df[(df[RP_COL] >= start) & (df[RP_COL] <= end)]
-
-agg_choice = st.sidebar.selectbox("Aggregation", ("mean", "sum"))
-
-if selected_employee != "All":
-    df = df[df[EMP_COL].astype(str) == str(selected_employee)]
-
-# ========== SUMMARY SECTION ==========
-st.markdown("## 📈 Summary Metrics")
-
-if RP_COL:
-    df["_month"] = df[RP_COL].dt.to_period("M").dt.to_timestamp()
-    months = sorted(df["_month"].dropna().unique())
-    latest_month = months[-1] if months else None
-    prev_month = months[-2] if len(months) >= 2 else None
+if chart_type == "line":
+    fig = px.line(filtered_df, x="Reporting_Period", y=selected_metric, color="Employee_ID",
+                  markers=True, title=f"{selected_metric} Trend")
 else:
-    df["_month"] = None
-    latest_month = prev_month = None
+    fig = px.bar(filtered_df, x="Reporting_Period", y=selected_metric, color="Employee_ID",
+                 barmode="group", title=f"{selected_metric} Comparison")
 
-default_metrics = numeric_cols[:6]
-chosen_metrics = st.multiselect("Select metrics to summarize", numeric_cols, default=default_metrics)
+fig.update_layout(
+    xaxis_title="Reporting Period",
+    yaxis_title=selected_metric,
+    template="plotly_white",
+    hovermode="x unified",
+    height=450
+)
+st.plotly_chart(fig, use_container_width=True)
 
-def agg_val(data, col):
-    return data[col].mean() if agg_choice == "mean" else data[col].sum()
+# ========================
+# Top Employees
+# ========================
+st.markdown("### 🏆 Top Performing Employees")
+avg_scores = filtered_df.groupby("Employee_ID")[metric_cols].mean().reset_index()
+avg_scores["Overall_Performance"] = avg_scores[metric_cols].mean(axis=1)
+top_employees = avg_scores.nlargest(5, "Overall_Performance")
 
-if latest_month is not None:
-    latest_df = df[df["_month"] == latest_month]
-    prev_df = df[df["_month"] == prev_month] if prev_month is not None else pd.DataFrame(columns=df.columns)
-
-cols = st.columns(len(chosen_metrics) if chosen_metrics else 1)
-for i, m in enumerate(chosen_metrics):
-    cur_val = agg_val(latest_df, m) if latest_month is not None else agg_val(df, m)
-    prev_val = agg_val(prev_df, m) if prev_month is not None else np.nan
-    label = m.replace("_", " ")
-
-    # Determine improvement text
-    if not np.isnan(prev_val) and prev_val != 0:
-        change = cur_val - prev_val
-        improved = change > 0
-        change_text = "▲ Improved" if improved else "▼ Declined"
-        color = "green" if improved else "red"
-        delta_html = f"<span style='color:{color};font-weight:bold'>{change_text}</span>"
-    else:
-        delta_html = "<span style='color:gray'>No prior data</span>"
-
-    val_display = f"{cur_val:,.2f}" if not pd.isna(cur_val) else "N/A"
-    cols[i].markdown(f"<h4>{label}</h4><h2>{val_display}</h2>{delta_html}", unsafe_allow_html=True)
-
-st.markdown("---")
-
-# ========== MAIN TREND CHART ==========
-st.markdown("## 📊 Monthly Trends by Metric")
-
-metrics_for_trend = st.multiselect("Select metrics to visualize", numeric_cols, default=chosen_metrics[:2])
-if RP_COL and metrics_for_trend:
-    df_trend = df.groupby("_month")[metrics_for_trend].agg(agg_choice).reset_index().sort_values("_month")
-
-    for m in metrics_for_trend:
-        chart_type = "bar" if any(k in m.lower() for k in ["count", "total", "num", "hour", "score"]) else "line"
-        title = f"Trend for {m.replace('_',' ')} ({agg_choice})"
-
-        if chart_type == "bar":
-            fig = px.bar(df_trend, x="_month", y=m, text_auto=True, title=title)
-        else:
-            fig = px.line(df_trend, x="_month", y=m, markers=True, title=title)
-
-        fig.update_layout(xaxis_title="Month", yaxis_title=m, hovermode="x unified")
-        st.plotly_chart(fig, use_container_width=True)
-else:
-    st.info("Please select a metric and ensure Reporting_Period is valid.")
-
-st.markdown("---")
-
-# ========== METRIC DISTRIBUTION ==========
-st.markdown("## 📦 Metric Distribution Across Employees")
-
-dist_metric = st.selectbox("Select metric for distribution", numeric_cols)
-if dist_metric:
-    fig = px.box(df, x=EMP_COL, y=dist_metric, points="all", title=f"Distribution of {dist_metric} across employees")
-    fig.update_layout(xaxis={'categoryorder':'total descending'})
-    st.plotly_chart(fig, use_container_width=True)
-
-st.markdown("---")
-
-# ========== DATA PREVIEW ==========
-st.markdown("## 📄 Data Preview & Download")
-st.dataframe(df.head(200), use_container_width=True)
-csv = df.to_csv(index=False).encode("utf-8")
-st.download_button("⬇️ Download filtered data", csv, file_name=f"{sheet_name}_filtered.csv", mime="text/csv")
+fig2 = px.bar(
+    top_employees,
+    x="Employee_ID",
+    y="Overall_Performance",
+    title="Top 5 Employees by Average KPI",
+    text_auto=True,
+    color="Overall_Performance",
+    color_continuous_scale="Blues"
+)
+fig2.update_layout(template="plotly_white", height=400)
+st.plotly_chart(fig2, use_container_width=True)
