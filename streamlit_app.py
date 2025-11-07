@@ -5,7 +5,7 @@ import plotly.graph_objects as go
 import numpy as np
 
 st.set_page_config(page_title="Employee KPI Dashboard v2", layout="wide", initial_sidebar_state="expanded")
-st.markdown("<h1 style='text-align:left'>📊 Employee KPI Dashboard — Multi-sheet</h1>", unsafe_allow_html=True)
+st.markdown("<h1 style='text-align:left'>📊 Employee KPI Dashboard</h1>", unsafe_allow_html=True)
 st.write("This app auto-loads **Updated_18_KPI_Dashboard.xlsx** from the repository and assumes each sheet has the same structure (Employee_ID, Reporting_Period, KPI columns).")
 
 @st.cache_data
