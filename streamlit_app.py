@@ -4,7 +4,7 @@ import plotly.express as px
 import numpy as np
 
 # ========== PAGE CONFIG ==========
-st.set_page_config(page_title="KPI Dashboard v3", layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(page_title="KPI Dashboard", layout="wide", initial_sidebar_state="expanded")
 st.markdown(
     """
     <style>
