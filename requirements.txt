@@ -3,8 +3,3 @@ pandas
 plotly
 openpyxl
 matplotlib
-datetime
-sklearn.preprocessing
-sklearn.ensemble
-sklearn.cluster
-warnings
