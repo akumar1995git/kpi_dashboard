@@ -48,15 +48,15 @@ st.markdown("""
 def load_data():
     file_path = "Updated_18_KPI_Dashboard.xlsx"
     employee_kpi_sheets = [
-        \'Role_vs_Reality_Analysis\',
-        \'Hidden_Capacity_Burnout_Risk\',
-        \'Work_Models_Effectiveness\',
-        \'Digital_Collaboration_Overload\',
-        \'Digital_Wellbeing_Index\',
-        \'Data_Driven_Skill_Gap_Analysis\',
-        \'High_Value_Work_Ratio\',
-        \'Future_Skill_Readiness_Index\',
-        \'Shadow_IT_Risk_Score\'
+        'Role_vs_Reality_Analysis',
+        'Hidden_Capacity_Burnout_Risk',
+        'Work_Models_Effectiveness',
+        'Digital_Collaboration_Overload',
+        'Digital_Wellbeing_Index',
+        'Data_Driven_Skill_Gap_Analysis',
+        'High_Value_Work_Ratio',
+        'Future_Skill_Readiness_Index',
+        'Shadow_IT_Risk_Score'
     ]
 
     all_data = {}
