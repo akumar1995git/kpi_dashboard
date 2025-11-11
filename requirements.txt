@@ -3,7 +3,7 @@ pandas
 plotly
 openpyxl
 matplotlib
-datetime import
+datetime
 sklearn.preprocessing
 sklearn.ensemble
 sklearn.cluster
