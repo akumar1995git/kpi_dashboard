@@ -276,18 +276,7 @@ with tab3:
     
     col1, col2 = st.columns(2)
     
-    with col1:
-        st.subheader("Wellbeing Trend")
-        wellbeing["Month"] = pd.to_datetime(wellbeing["Reporting_Period"]).dt.to_period("M").astype(str)
-        month_well = wellbeing.groupby("Month")["Digital_Wellbeing_Score"].mean() * 100
-        fig = px.line(x=month_well.index, y=month_well.values, markers=True)
-        st.plotly_chart(fig, use_container_width=True)
     
-    with col2:
-        st.subheader("Collaboration Distribution")
-        coll_data = collab.groupby("Employee_ID")["Collaboration_Overload_Percentage"].mean() * 100
-        fig = px.box(y=coll_data.values)
-        st.plotly_chart(fig, use_container_width=True)
     
     with st.expander("View At-Risk Employees"):
         at_risk = burnout[burnout["Burnout_Risk_Score"] > 5].groupby("Employee_ID")["Burnout_Risk_Score"].mean().sort_values(ascending=False).head(10)
@@ -314,18 +303,11 @@ with tab4:
     fig.update_layout(barmode="group")
     st.plotly_chart(fig, use_container_width=True)
     
-    col1, col2 = st.columns(2)
     
-    with col1:
-        st.subheader("Training by Quarter")
-        train_q = skill_ready.groupby("Quarter")["Training_Completion_Percentage"].mean()
-        fig = px.bar(x=train_q.index, y=train_q.values, color=train_q.values, color_continuous_scale="Blues")
-        st.plotly_chart(fig, use_container_width=True)
-    
-    with col2:
-        st.subheader("Readiness Distribution")
-        fig = px.histogram(skill_ready, x="Readiness_Score", nbins=20, color_discrete_sequence=["#e63946"])
-        st.plotly_chart(fig, use_container_width=True)
+
+    st.subheader("Readiness Distribution")
+    fig = px.histogram(skill_ready, x="Readiness_Score", nbins=20, color_discrete_sequence=["#e63946"])
+    st.plotly_chart(fig, use_container_width=True)
     
     with st.expander("Priority Development"):
         low = skill_ready[skill_ready["Readiness_Score"] < 2].groupby("Employee_ID")["Readiness_Score"].mean().sort_values().head(10)
