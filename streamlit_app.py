@@ -29,7 +29,7 @@ st.markdown("""
 
 @st.cache_data
 def load_data():
-    file_path = "Enhanced_18_KPI_Dashboard.xlsx"
+    file_path = "Enhanced_25_Employee_KPI_Dashboard.xlsx"
     sheets = [
         "Role_vs_Reality_Analysis",
         "Hidden_Capacity_Burnout_Risk",
@@ -91,16 +91,16 @@ with tab1:
     col1, col2, col3, col4 = st.columns(4)
     
     with col1:
-        st.metric("Productivity Index", f"{productivity:.1f}%")
+        st.metric("Productivity Index", f"{productivity:.1f}", "Scale: 85-120")
     
     with col2:
-        st.metric("Burnout Risk", f"{burnout_score:.1f}/10")
+        st.metric("Burnout Risk", f"{burnout_score:.1f}/10", "Scale: 0-10")
     
     with col3:
-        st.metric("Skill Readiness", f"{skill_readiness:.2f}/10")
+        st.metric("Skill Readiness", f"{skill_readiness:.2f}/10", "Scale: 0-10")
     
     with col4:
-        st.metric("Security Risk", f"{security_risk:.1f}%")
+        st.metric("Security Risk", f"{security_risk:.1f}", "Scale: 0-100")
     
     st.markdown("---")
     
@@ -108,36 +108,68 @@ with tab1:
     col1, col2, col3, col4 = st.columns(4)
     with col1:
         if st.button("→ Productivity Analysis", key="nav_prod"):
-            st.session_state.tab = 1
+            st.switch_page("pages/productivity.py")
     with col2:
         if st.button("→ Wellbeing Assessment", key="nav_well"):
-            st.session_state.tab = 2
+            st.switch_page("pages/wellbeing.py")
     with col3:
         if st.button("→ Skills Development", key="nav_skill"):
-            st.session_state.tab = 3
+            st.switch_page("pages/skills.py")
     with col4:
         if st.button("→ Security Assessment", key="nav_sec"):
-            st.session_state.tab = 4
+            st.switch_page("pages/security.py")
     
     st.markdown("---")
     st.subheader("Organizational Health Overview")
     
-    fig = go.Figure()
-    categories = ["Productivity", "Wellbeing", "Skills", "Security"]
+    # Fixed Radar Chart with connecting lines
+    categories = ["Productivity", "Security", "Wellbeing", "Skills"]
     current = [
         (productivity / 120) * 100,
+        ((100 - security_risk) / 100) * 100,
         wellbeing["Digital_Wellbeing_Score"].mean() * 100,
-        (skill_readiness / 10) * 100,
-        ((100 - security_risk) / 100) * 100
+        (skill_readiness / 10) * 100
     ]
-    target = [85, 80, 70, 85]
+    target = [85, 85, 80, 70]
     
-    fig.add_trace(go.Scatterpolar(r=current, theta=categories, fill="toself", name="Current", 
-                                  line=dict(color=mono_blues[0]), fillcolor=mono_blues[4]))
-    fig.add_trace(go.Scatterpolar(r=target, theta=categories, fill="toself", name="Target", 
-                                  line=dict(color=mono_blues[2]), fillcolor=mono_greys[5], opacity=0.5))
-    fig.update_layout(polar=dict(radialaxis=dict(range=[0, 100])), showlegend=True, 
-                     paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
+    # Add first point at end to close the polygon
+    current_closed = current + [current[0]]
+    target_closed = target + [target[0]]
+    categories_closed = categories + [categories[0]]
+    
+    fig = go.Figure()
+    
+    fig.add_trace(go.Scatterpolar(
+        r=current,
+        theta=categories,
+        fill='toself',
+        name='Current',
+        line=dict(color=mono_blues[0], width=2),
+        fillcolor=mono_blues[4]
+    ))
+    
+    fig.add_trace(go.Scatterpolar(
+        r=target,
+        theta=categories,
+        fill='toself',
+        name='Target',
+        line=dict(color=mono_blues[2], width=2),
+        fillcolor=mono_greys[5],
+        opacity=0.5
+    ))
+    
+    fig.update_layout(
+        polar=dict(
+            radialaxis=dict(range=[0, 100], tickfont=dict(size=10)),
+            angularaxis=dict(tickfont=dict(size=11))
+        ),
+        showlegend=True,
+        paper_bgcolor='rgba(0,0,0,0)',
+        plot_bgcolor='rgba(0,0,0,0)',
+        font=dict(color=mono_greys[0]),
+        height=500
+    )
+    
     st.plotly_chart(fig, use_container_width=True)
 
 with tab2:
@@ -228,13 +260,13 @@ with tab3:
     col1, col2, col3 = st.columns(3)
     with col1:
         cap = burnout["Capacity_Utilization_Percentage"].mean() * 100
-        st.metric("Capacity Utilization", f"{cap:.1f}%")
+        st.metric("Capacity Utilization", f"{cap:.1f}%", "Scale: 0-100%")
     with col2:
         burn_avg = burnout["Burnout_Risk_Score"].mean()
-        st.metric("Burnout Risk", f"{burn_avg:.1f}/10")
+        st.metric("Burnout Risk", f"{burn_avg:.1f}/10", "Scale: 0-10")
     with col3:
         coll_avg = collab["Collaboration_Overload_Percentage"].mean() * 100
-        st.metric("Collaboration Time", f"{coll_avg:.1f}%")
+        st.metric("Collaboration Time", f"{coll_avg:.1f}%", "Scale: 0-100%")
     
     st.markdown("---")
     
@@ -273,11 +305,11 @@ with tab4:
     
     col1, col2, col3 = st.columns(3)
     with col1:
-        st.metric("Readiness Index", f"{skill_ready['Readiness_Score'].mean():.2f}/10")
+        st.metric("Readiness Index", f"{skill_ready['Readiness_Score'].mean():.2f}/10", "Scale: 0-10")
     with col2:
-        st.metric("Training Completion", f"{skill_ready['Training_Completion_Percentage'].mean():.1f}%")
+        st.metric("Training Completion", f"{skill_ready['Training_Completion_Percentage'].mean():.1f}%", "Scale: 0-100%")
     with col3:
-        st.metric("Avg Skill Gap", f"{skill_gap['Skill_Gap_Score'].mean():.2f}")
+        st.metric("Avg Skill Gap", f"{skill_gap['Skill_Gap_Score'].mean():.2f}", "Scale: 0-10")
     
     st.markdown("---")
     
@@ -291,7 +323,7 @@ with tab4:
                      paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
     st.plotly_chart(fig, use_container_width=True)
     
-    # Month selector for readiness distribution
+    # Quarter selector for readiness distribution
     skill_ready_quarters = skill_ready['Quarter'].unique()
     selected_quarter = st.selectbox("Select Quarter for Distribution:", sorted(skill_ready_quarters), key="readiness_quarter")
     
@@ -315,10 +347,10 @@ with tab5:
     
     col1, col2, col3 = st.columns(3)
     with col1:
-        st.metric("Avg Risk", f"{shadow_it['Risk_Score'].mean():.1f}")
+        st.metric("Avg Risk", f"{shadow_it['Risk_Score'].mean():.1f}", "Scale: 0-100")
     with col2:
         high = len(shadow_it[shadow_it["Risk_Score"] > 60])
-        st.metric("High-Risk Cases", f"{high} ({high/len(shadow_it)*100:.1f}%)")
+        st.metric("High-Risk Cases", f"{high} ({high/len(shadow_it)*100:.1f}%)", "Scale: 0-100")
     with col3:
         st.metric("Unauthorized Apps", f"{shadow_it['Unauthorized_Apps_Count'].mean():.1f}", "Avg per employee")
     
