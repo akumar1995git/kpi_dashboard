@@ -24,24 +24,12 @@ st.markdown("""
     font-weight: 700;
     margin: 30px 0 15px 0;
 }
-.metric-clickable {
-    cursor: pointer;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    padding: 15px;
-    border-radius: 10px;
-    color: white;
-    text-align: center;
-    transition: transform 0.2s;
-}
-.metric-clickable:hover {
-    transform: scale(1.05);
-}
 </style>
 """, unsafe_allow_html=True)
 
 @st.cache_data
 def load_data():
-    file_path = "Updated_18_KPI_Dashboard.xlsx"
+    file_path = "Enhanced_18_KPI_Dashboard.xlsx"
     sheets = [
         "Role_vs_Reality_Analysis",
         "Hidden_Capacity_Burnout_Risk",
@@ -65,13 +53,8 @@ def load_data():
 
 data = load_data()
 
-col1, col2 = st.columns([1, 5])
-with col1:
-    st.image("https://upload.wikimedia.org/wikipedia/commons/f/f5/Emblem_of_India.svg", width=80)
-with col2:
-    st.title("Employee KPI Dashboard")
-    st.markdown("**Interactive Workforce Analytics** | April - September 2025")
-
+st.title("Employee KPI Dashboard")
+st.markdown("**Workforce Analytics** | April - September 2025")
 st.markdown("---")
 
 tab1, tab2, tab3, tab4, tab5 = st.tabs([
@@ -92,133 +75,70 @@ skill_gap = data["Data_Driven_Skill_Gap_Analysis"]
 skill_ready = data["Future_Skill_Readiness_Index"]
 shadow_it = data["Shadow_IT_Risk_Score"]
 
+# MONOCHROME COLOR PALETTES
+mono_greys = ['#2c3e50', '#34495e', '#7f8c8d', '#95a5a6', '#bdc3c7', '#ecf0f1']
+mono_blues = ['#0f1f3f', '#1a3a52', '#2d5a6d', '#5a7f94', '#8fa9be', '#c5d9e8']
+
 with tab1:
     st.markdown('<div class="story-title">Executive Summary</div>', unsafe_allow_html=True)
+    
+    # Calculate metrics with scales
+    productivity = work_models['Productivity_Index'].mean()
+    burnout_score = burnout['Burnout_Risk_Score'].mean()
+    skill_readiness = skill_ready['Readiness_Score'].mean()
+    security_risk = shadow_it['Risk_Score'].mean()
     
     col1, col2, col3, col4 = st.columns(4)
     
     with col1:
-        st.metric("Productivity", f"{work_models['Productivity_Index'].mean():.1f}")
-        if st.button("View Details", key="prod_detail"):
-            st.session_state.selected = "productivity"
+        st.metric("Productivity Index", f"{productivity:.1f}", "Scale: 85-120")
     
     with col2:
-        st.metric("Burnout Risk", f"{burnout['Burnout_Risk_Score'].mean():.1f}")
-        if st.button("View Details", key="burnout_detail"):
-            st.session_state.selected = "burnout"
+        st.metric("Burnout Risk", f"{burnout_score:.1f}/10", "Scale: 0-10")
     
     with col3:
-        st.metric("Skill Readiness", f"{skill_ready['Readiness_Score'].mean():.2f}/10")
-        if st.button("View Details", key="skills_detail"):
-            st.session_state.selected = "skills"
+        st.metric("Skill Readiness", f"{skill_readiness:.2f}/10", "Scale: 0-10")
     
     with col4:
-        st.metric("Security Risk", f"{shadow_it['Risk_Score'].mean():.1f}")
-        if st.button("View Details", key="security_detail"):
-            st.session_state.selected = "security"
+        st.metric("Security Risk", f"{security_risk:.1f}", "Scale: 0-100")
     
     st.markdown("---")
     
-    if "selected" not in st.session_state:
-        st.session_state.selected = None
-    
-    if st.session_state.selected == "productivity":
-        st.subheader("Productivity Deep Dive")
-        col1, col2 = st.columns(2)
-        with col1:
-            st.metric("Average Productivity", f"{work_models['Productivity_Index'].mean():.2f}")
-            st.metric("Min", f"{work_models['Productivity_Index'].min():.2f}")
-            st.metric("Max", f"{work_models['Productivity_Index'].max():.2f}")
-        with col2:
-            work_model_stats = work_models.groupby("Work_Model")["Productivity_Index"].mean()
-            st.bar_chart(work_model_stats)
-    
-    elif st.session_state.selected == "burnout":
-        st.subheader("Burnout Risk Details")
-        col1, col2 = st.columns(2)
-        with col1:
-            st.metric("Average Risk", f"{burnout['Burnout_Risk_Score'].mean():.2f}")
-            at_risk = len(burnout[burnout['Burnout_Risk_Score'] > 5])
-            st.metric("At-Risk Employees", at_risk)
-        with col2:
-            fig = px.histogram(burnout, x="Burnout_Risk_Score", nbins=20, color_discrete_sequence=["#e63946"])
-            fig.add_vline(x=5, line_dash="dash")
-            st.plotly_chart(fig, use_container_width=True)
-    
-    elif st.session_state.selected == "skills":
-        st.subheader("Skills Development Details")
-        col1, col2 = st.columns(2)
-        with col1:
-            st.metric("Readiness Index", f"{skill_ready['Readiness_Score'].mean():.2f}/10")
-            st.metric("Training Completion", f"{skill_ready['Training_Completion_Percentage'].mean():.1f}%")
-        with col2:
-            skill_analysis = skill_gap.groupby("Skill_Category")["Skill_Gap_Score"].mean()
-            st.bar_chart(skill_analysis)
-    
-    elif st.session_state.selected == "security":
-        st.subheader("Security Risk Details")
-        col1, col2 = st.columns(2)
-        with col1:
-            st.metric("Average Risk", f"{shadow_it['Risk_Score'].mean():.1f}")
-            high_risk = len(shadow_it[shadow_it['Risk_Score'] > 60])
-            st.metric("High-Risk Cases", f"{high_risk} ({high_risk/len(shadow_it)*100:.1f}%)")
-        with col2:
-            risk_sens = shadow_it.groupby("Data_Sensitivity_Level")["Risk_Score"].mean()
-            st.bar_chart(risk_sens)
-    
-    if st.session_state.selected is None:
-        st.subheader("Organizational Health")
-        fig = go.Figure()
-        categories = ["Productivity", "Wellbeing", "Skills", "Security"]
-        current = [(work_models["Productivity_Index"].mean()/110)*100, wellbeing["Digital_Wellbeing_Score"].mean()*100, (skill_ready["Readiness_Score"].mean()/10)*100, ((100-shadow_it["Risk_Score"].mean())/100)*100]
-        target = [85, 80, 70, 85]
-        
-        fig.add_trace(go.Scatterpolar(r=current, theta=categories, fill="toself", name="Current", line_color="#667eea"))
-        fig.add_trace(go.Scatterpolar(r=target, theta=categories, fill="toself", name="Target", line_color="#f093fb", opacity=0.6))
-        fig.update_layout(polar=dict(radialaxis=dict(range=[0,100])), showlegend=True)
-        st.plotly_chart(fig, use_container_width=True)
+    # Navigation buttons that redirect to tabs
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        if st.button("→ Productivity Analysis", key="nav_prod"):
+            st.session_state.tab = 1
+    with col2:
+        if st.button("→ Wellbeing Assessment", key="nav_well"):
+            st.session_state.tab = 2
+    with col3:
+        if st.button("→ Skills Development", key="nav_skill"):
+            st.session_state.tab = 3
+    with col4:
+        if st.button("→ Security Assessment", key="nav_sec"):
+            st.session_state.tab = 4
     
     st.markdown("---")
-    st.subheader("Interactive Employee Analysis")
+    st.subheader("Organizational Health Overview")
     
-    selected_emp = st.selectbox("Select Employee", role_reality["Employee_ID"].unique(), key="emp_select_1")
+    fig = go.Figure()
+    categories = ["Productivity", "Wellbeing", "Skills", "Security"]
+    current = [
+        (productivity / 120) * 100,
+        wellbeing["Digital_Wellbeing_Score"].mean() * 100,
+        (skill_readiness / 10) * 100,
+        ((100 - security_risk) / 100) * 100
+    ]
+    target = [85, 80, 70, 85]
     
-    if selected_emp:
-        col1, col2, col3 = st.columns(3)
-        
-        with col1:
-            low_val = role_reality[role_reality["Employee_ID"]==selected_emp]["Low_Value_Work_Percentage"].mean()*100
-            st.metric(f"{selected_emp} - Low-Value %", f"{low_val:.1f}%")
-        
-        with col2:
-            high_val = high_value[high_value["Employee_ID"]==selected_emp]["High_Value_Work_Percentage"].mean()*100
-            st.metric(f"{selected_emp} - High-Value %", f"{high_val:.1f}%")
-        
-        with col3:
-            prod = work_models[work_models["Employee_ID"]==selected_emp]["Productivity_Index"].mean()
-            st.metric(f"{selected_emp} - Productivity", f"{prod:.1f}")
-        
-        emp_tabs = st.tabs(["Wellbeing", "Skills", "Security"])
-        
-        with emp_tabs[0]:
-            burn = burnout[burnout["Employee_ID"]==selected_emp]["Burnout_Risk_Score"].mean()
-            well = wellbeing[wellbeing["Employee_ID"]==selected_emp]["Digital_Wellbeing_Score"].mean()*100
-            coll = collab[collab["Employee_ID"]==selected_emp]["Collaboration_Overload_Percentage"].mean()*100
-            
-            st.write(f"**Burnout Risk:** {burn:.2f}")
-            st.write(f"**Wellbeing Score:** {well:.1f}%")
-            st.write(f"**Collaboration Time:** {coll:.1f}%")
-        
-        with emp_tabs[1]:
-            emp_skills = skill_gap[skill_gap["Employee_ID"]==selected_emp]
-            if not emp_skills.empty:
-                st.dataframe(emp_skills[["Skill_Category", "Performance_Score", "Benchmark_Score"]])
-        
-        with emp_tabs[2]:
-            risk = shadow_it[shadow_it["Employee_ID"]==selected_emp]["Risk_Score"].mean()
-            apps = shadow_it[shadow_it["Employee_ID"]==selected_emp]["Unauthorized_Apps_Count"].mean()
-            st.write(f"**Risk Score:** {risk:.1f}")
-            st.write(f"**Unauthorized Apps:** {apps:.1f}")
+    fig.add_trace(go.Scatterpolar(r=current, theta=categories, fill="toself", name="Current", 
+                                  line=dict(color=mono_blues[0]), fillcolor=mono_blues[4]))
+    fig.add_trace(go.Scatterpolar(r=target, theta=categories, fill="toself", name="Target", 
+                                  line=dict(color=mono_blues[2]), fillcolor=mono_greys[5], opacity=0.5))
+    fig.update_layout(polar=dict(radialaxis=dict(range=[0, 100])), showlegend=True, 
+                     paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
+    st.plotly_chart(fig, use_container_width=True)
 
 with tab2:
     st.markdown('<div class="story-title">Productivity Analysis</div>', unsafe_allow_html=True)
@@ -230,20 +150,66 @@ with tab2:
         avg_low = role_reality["Low_Value_Work_Percentage"].mean() * 100
         avg_high = high_value["High_Value_Work_Percentage"].mean() * 100
         fig = go.Figure()
-        fig.add_trace(go.Bar(x=["Low-Value", "High-Value"], y=[avg_low, avg_high], marker_color=["#e63946", "#06d6a0"]))
+        fig.add_trace(go.Bar(x=["Low-Value", "High-Value"], y=[avg_low, avg_high], 
+                            marker_color=[mono_greys[2], mono_blues[0]]))
+        fig.update_layout(yaxis_title="% of Work Time", showlegend=False,
+                         paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
         st.plotly_chart(fig, use_container_width=True)
     
     with col2:
-        st.subheader("By Work Model")
+        st.subheader("Productivity by Work Model (Dynamic Scale)")
         model_data = work_models.groupby("Work_Model")["Productivity_Index"].mean()
-        fig = px.bar(x=model_data.index, y=model_data.values, color=model_data.values, color_continuous_scale="Viridis")
+        min_val = model_data.min()
+        max_val = model_data.max()
+        
+        fig = px.bar(x=model_data.index, y=model_data.values)
+        fig.update_traces(marker_color=mono_blues[0])
+        fig.update_yaxes(range=[min_val * 0.95, max_val * 1.05])
+        fig.update_layout(yaxis_title="Productivity Index", showlegend=False,
+                         paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
         st.plotly_chart(fig, use_container_width=True)
     
-    st.subheader("Trends Over Time")
-    role_reality["Month"] = pd.to_datetime(role_reality["Reporting_Period"]).dt.to_period("M").astype(str)
+    # Quartile selection for productivity
+    st.subheader("Employee Performance Quartiles")
+    
+    emp_prod = work_models.groupby("Employee_ID")["Productivity_Index"].mean()
+    q1, q2, q3 = emp_prod.quantile([0.25, 0.5, 0.75])
+    
+    quartile_options = ["All", "Top Quartile (Q4)", "Second Quartile (Q3)", "Third Quartile (Q2)", "Bottom Quartile (Q1)"]
+    selected_quartile = st.selectbox("Select Performance Group:", quartile_options)
+    
+    if selected_quartile == "Top Quartile (Q4)":
+        selected_emps = emp_prod[emp_prod >= q3].index.tolist()
+        title_text = f"Top Performers (n={len(selected_emps)})"
+    elif selected_quartile == "Second Quartile (Q3)":
+        selected_emps = emp_prod[(emp_prod >= q2) & (emp_prod < q3)].index.tolist()
+        title_text = f"Second Quartile (n={len(selected_emps)})"
+    elif selected_quartile == "Third Quartile (Q2)":
+        selected_emps = emp_prod[(emp_prod >= q1) & (emp_prod < q2)].index.tolist()
+        title_text = f"Third Quartile (n={len(selected_emps)})"
+    elif selected_quartile == "Bottom Quartile (Q1)":
+        selected_emps = emp_prod[emp_prod < q1].index.tolist()
+        title_text = f"Bottom Quartile (n={len(selected_emps)})"
+    else:
+        selected_emps = emp_prod.index.tolist()
+        title_text = "All Employees"
+    
+    if selected_emps:
+        quartile_data = emp_prod[emp_prod.index.isin(selected_emps)].sort_values(ascending=False)
+        fig = px.bar(y=quartile_data.index, x=quartile_data.values, orientation='h', title=title_text)
+        fig.update_traces(marker_color=mono_blues[2])
+        fig.update_layout(yaxis_title="Employee", xaxis_title="Productivity Index",
+                         paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
+        st.plotly_chart(fig, use_container_width=True)
+    
+    st.subheader("Low-Value Work Trend")
+    role_reality["Month"] = pd.to_datetime(role_reality["Reporting_Period"]).dt.strftime('%Y-%m')
     monthly = role_reality.groupby("Month")["Low_Value_Work_Percentage"].mean() * 100
     
     fig = px.line(x=monthly.index, y=monthly.values, markers=True, title="Low-Value Work Trend")
+    fig.update_traces(line=dict(color=mono_greys[2], width=3), marker=dict(size=8))
+    fig.update_layout(yaxis_title="% of Work Time", xaxis_title="Month",
+                     paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
     st.plotly_chart(fig, use_container_width=True)
     
     with st.expander("View Top Performers"):
@@ -251,9 +217,10 @@ with tab2:
         for idx, (emp, score) in enumerate(top_emp.items(), 1):
             st.write(f"{idx}. {emp}: {score:.2f}")
     
-    with st.expander("Download Data"):
-        csv = role_reality.to_csv(index=False)
-        st.download_button("Download", csv, "productivity.csv")
+    with st.expander("View Bottom Performers"):
+        bottom_emp = work_models.groupby("Employee_ID")["Productivity_Index"].mean().nsmallest(10)
+        for idx, (emp, score) in enumerate(bottom_emp.items(), 1):
+            st.write(f"{idx}. {emp}: {score:.2f}")
 
 with tab3:
     st.markdown('<div class="story-title">Wellbeing Assessment</div>', unsafe_allow_html=True)
@@ -261,56 +228,85 @@ with tab3:
     col1, col2, col3 = st.columns(3)
     with col1:
         cap = burnout["Capacity_Utilization_Percentage"].mean() * 100
-        st.metric("Capacity Utilization", f"{cap:.1f}%")
+        st.metric("Capacity Utilization", f"{cap:.1f}%", "Scale: 0-100%")
     with col2:
         burn_avg = burnout["Burnout_Risk_Score"].mean()
-        st.metric("Burnout Risk", f"{burn_avg:.1f}")
+        st.metric("Burnout Risk", f"{burn_avg:.1f}/10", "Scale: 0-10")
     with col3:
         coll_avg = collab["Collaboration_Overload_Percentage"].mean() * 100
-        st.metric("Collaboration Time", f"{coll_avg:.1f}%")
+        st.metric("Collaboration Time", f"{coll_avg:.1f}%", "Scale: 0-100%")
     
-    st.subheader("Risk Distribution")
-    fig = px.histogram(burnout, x="Burnout_Risk_Score", nbins=30, color_discrete_sequence=["#e63946"])
-    fig.add_vline(x=5, line_dash="dash", line_color="orange")
+    st.markdown("---")
+    
+    # Month selector for burnout distribution
+    burnout["Month"] = pd.to_datetime(burnout["Week_Ending_Date"]).dt.strftime('%Y-%m')
+    available_months = sorted(burnout["Month"].unique())
+    selected_month = st.selectbox("Select Month for Distribution:", available_months, index=len(available_months)-1, key="burnout_month")
+    
+    month_data = burnout[burnout["Month"] == selected_month]["Burnout_Risk_Score"]
+    
+    st.subheader(f"Burnout Risk Distribution - {selected_month}")
+    fig = px.histogram(month_data, nbins=15, title=f"Distribution ({selected_month})")
+    fig.update_traces(marker_color=mono_greys[2])
+    fig.update_layout(xaxis_title="Burnout Risk Score", yaxis_title="Frequency",
+                     showlegend=False, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
+    fig.add_vline(x=5, line_dash="dash", line_color=mono_blues[0], annotation_text="High Risk Threshold")
     st.plotly_chart(fig, use_container_width=True)
     
-    col1, col2 = st.columns(2)
+    # Burnout trend
+    st.subheader("Average Burnout Risk Trend")
+    burnout_trend = burnout.groupby("Month")["Burnout_Risk_Score"].mean()
     
-    
+    fig = px.line(x=burnout_trend.index, y=burnout_trend.values, markers=True, title="Monthly Average Burnout Risk")
+    fig.update_traces(line=dict(color=mono_greys[2], width=3), marker=dict(size=8))
+    fig.update_layout(yaxis_title="Burnout Risk Score", xaxis_title="Month",
+                     paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
+    st.plotly_chart(fig, use_container_width=True)
     
     with st.expander("View At-Risk Employees"):
         at_risk = burnout[burnout["Burnout_Risk_Score"] > 5].groupby("Employee_ID")["Burnout_Risk_Score"].mean().sort_values(ascending=False).head(10)
         for emp, score in at_risk.items():
-            st.warning(f"⚠️ {emp}: {score:.2f}")
+            st.warning(f"⚠️ {emp}: {score:.2f}/10")
 
 with tab4:
     st.markdown('<div class="story-title">Skills Development</div>', unsafe_allow_html=True)
     
     col1, col2, col3 = st.columns(3)
     with col1:
-        st.metric("Readiness Index", f"{skill_ready['Readiness_Score'].mean():.2f}/10")
+        st.metric("Readiness Index", f"{skill_ready['Readiness_Score'].mean():.2f}/10", "Scale: 0-10")
     with col2:
-        st.metric("Training Completion", f"{skill_ready['Training_Completion_Percentage'].mean():.1f}%")
+        st.metric("Training Completion", f"{skill_ready['Training_Completion_Percentage'].mean():.1f}%", "Scale: 0-100%")
     with col3:
-        st.metric("Avg Skill Gap", f"{skill_gap['Skill_Gap_Score'].mean():.2f}")
+        st.metric("Avg Skill Gap", f"{skill_gap['Skill_Gap_Score'].mean():.2f}", "Scale: 0-10")
+    
+    st.markdown("---")
     
     st.subheader("Skills vs Benchmark")
     skill_comp = skill_gap.groupby("Skill_Category")[["Performance_Score", "Benchmark_Score"]].mean()
     
     fig = go.Figure()
-    fig.add_trace(go.Bar(name="Current", x=skill_comp.index, y=skill_comp["Performance_Score"], marker_color="#457b9d"))
-    fig.add_trace(go.Bar(name="Target", x=skill_comp.index, y=skill_comp["Benchmark_Score"], marker_color="#06d6a0"))
-    fig.update_layout(barmode="group")
+    fig.add_trace(go.Bar(name="Current", x=skill_comp.index, y=skill_comp["Performance_Score"], marker_color=mono_blues[1]))
+    fig.add_trace(go.Bar(name="Target", x=skill_comp.index, y=skill_comp["Benchmark_Score"], marker_color=mono_greys[2]))
+    fig.update_layout(barmode="group", yaxis_title="Score", 
+                     paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
     st.plotly_chart(fig, use_container_width=True)
     
+    # Month selector for readiness distribution
+    skill_ready_quarters = skill_ready['Quarter'].unique()
+    selected_quarter = st.selectbox("Select Quarter for Distribution:", sorted(skill_ready_quarters), key="readiness_quarter")
     
-
-    st.subheader("Readiness Distribution")
-    fig = px.histogram(skill_ready, x="Readiness_Score", nbins=20, color_discrete_sequence=["#e63946"])
+    quarter_data = skill_ready[skill_ready["Quarter"] == selected_quarter]["Readiness_Score"]
+    
+    st.subheader(f"Readiness Score Distribution - {selected_quarter}")
+    fig = px.histogram(quarter_data, nbins=10, title=f"Distribution ({selected_quarter})")
+    fig.update_traces(marker_color=mono_blues[2])
+    fig.update_layout(xaxis_title="Readiness Score", yaxis_title="Frequency",
+                     showlegend=False, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
+    fig.add_vline(x=5, line_dash="dash", line_color=mono_greys[0], annotation_text="Target")
     st.plotly_chart(fig, use_container_width=True)
     
     with st.expander("Priority Development"):
-        low = skill_ready[skill_ready["Readiness_Score"] < 2].groupby("Employee_ID")["Readiness_Score"].mean().sort_values().head(10)
+        low = skill_ready[skill_ready["Readiness_Score"] < 5].groupby("Employee_ID")["Readiness_Score"].mean().sort_values().head(10)
         for emp, score in low.items():
             st.warning(f"{emp}: {score:.2f}/10")
 
@@ -319,31 +315,45 @@ with tab5:
     
     col1, col2, col3 = st.columns(3)
     with col1:
-        st.metric("Avg Risk", f"{shadow_it['Risk_Score'].mean():.1f}")
+        st.metric("Avg Risk", f"{shadow_it['Risk_Score'].mean():.1f}", "Scale: 0-100")
     with col2:
         high = len(shadow_it[shadow_it["Risk_Score"] > 60])
-        st.metric("High-Risk", f"{high} ({high/len(shadow_it)*100:.1f}%)")
+        st.metric("High-Risk Cases", f"{high} ({high/len(shadow_it)*100:.1f}%)", "Scale: 0-100")
     with col3:
-        st.metric("Unauthorized Apps", f"{shadow_it['Unauthorized_Apps_Count'].mean():.1f}")
+        st.metric("Unauthorized Apps", f"{shadow_it['Unauthorized_Apps_Count'].mean():.1f}", "Avg per employee")
     
-    col1, col2 = st.columns(2)
+    st.markdown("---")
     
-    with col1:
-        st.subheader("Risk Distribution")
-        fig = px.histogram(shadow_it, x="Risk_Score", nbins=30, color_discrete_sequence=["#e63946"])
-        fig.add_vline(x=60, line_dash="dash", line_color="red")
-        st.plotly_chart(fig, use_container_width=True)
+    # Month selector for risk distribution
+    shadow_it["Month"] = pd.to_datetime(shadow_it["Week_Ending_Date"]).dt.strftime('%Y-%m')
+    available_months_risk = sorted(shadow_it["Month"].unique())
+    selected_month_risk = st.selectbox("Select Month for Distribution:", available_months_risk, index=len(available_months_risk)-1, key="risk_month")
     
-    with col2:
-        st.subheader("Risk by Data Sensitivity")
-        risk_sens = shadow_it.groupby("Data_Sensitivity_Level")["Risk_Score"].mean()
-        fig = px.bar(x=risk_sens.index, y=risk_sens.values, color=risk_sens.values, color_continuous_scale="Reds")
-        st.plotly_chart(fig, use_container_width=True)
+    month_risk_data = shadow_it[shadow_it["Month"] == selected_month_risk]["Risk_Score"]
     
-    shadow_it["Month"] = pd.to_datetime(shadow_it["Week_Ending_Date"]).dt.to_period("M").astype(str)
-    monthly_apps = shadow_it.groupby("Month")["Unauthorized_Apps_Count"].mean()
+    st.subheader(f"Risk Distribution - {selected_month_risk}")
+    fig = px.histogram(month_risk_data, nbins=15, title=f"Distribution ({selected_month_risk})")
+    fig.update_traces(marker_color=mono_greys[2])
+    fig.update_layout(xaxis_title="Risk Score", yaxis_title="Frequency",
+                     showlegend=False, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
+    fig.add_vline(x=60, line_dash="dash", line_color=mono_blues[0], annotation_text="High Risk Threshold")
+    st.plotly_chart(fig, use_container_width=True)
     
-    fig = px.line(x=monthly_apps.index, y=monthly_apps.values, markers=True, title="Unauthorized Apps Trend")
+    st.subheader("Risk by Data Sensitivity")
+    risk_sens = shadow_it.groupby("Data_Sensitivity_Level")["Risk_Score"].mean()
+    fig = px.bar(x=risk_sens.index, y=risk_sens.values)
+    fig.update_traces(marker_color=mono_greys[2])
+    fig.update_layout(yaxis_title="Avg Risk Score", xaxis_title="Data Sensitivity Level",
+                     paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
+    st.plotly_chart(fig, use_container_width=True)
+    
+    shadow_it_trend = shadow_it.groupby("Month")["Unauthorized_Apps_Count"].mean()
+    
+    st.subheader("Unauthorized Apps Trend")
+    fig = px.line(x=shadow_it_trend.index, y=shadow_it_trend.values, markers=True, title="Monthly Average Unauthorized Apps")
+    fig.update_traces(line=dict(color=mono_greys[2], width=3), marker=dict(size=8))
+    fig.update_layout(yaxis_title="Avg Count", xaxis_title="Month",
+                     paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
     st.plotly_chart(fig, use_container_width=True)
     
     with st.expander("High-Risk Employees"):
