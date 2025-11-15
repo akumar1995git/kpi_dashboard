@@ -109,7 +109,7 @@ with tab1:
     # Create closed loop for radar chart so all connecting lines are visible
 categories = ["Productivity", "Security", "Wellbeing", "Skills"]
 current = [
-    (productivity) * 100,
+    (productivity),
     ((100 - security_risk) / 100) * 100,
     wellbeing["Digital_Wellbeing_Score"].mean() * 100,
     (skill_readiness / 10) * 100
