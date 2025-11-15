@@ -106,55 +106,54 @@ with tab1:
     st.markdown("---")
     st.subheader("Organizational Health Overview")
     
-    # Fixed Radar Chart with connecting lines
-    categories = ["Productivity", "Security", "Wellbeing", "Skills"]
-    current = [
-        (productivity / 120) * 100,
-        ((100 - security_risk) / 100) * 100,
-        wellbeing["Digital_Wellbeing_Score"].mean() * 100,
-        (skill_readiness / 10) * 100
-    ]
-    target = [85, 85, 80, 70]
-    
-    # Add first point at end to close the polygon
-    current_closed = current + [current[0]]
-    target_closed = target + [target[0]]
-    categories_closed = categories + [categories[0]]
-    
-    fig = go.Figure()
-    
-    fig.add_trace(go.Scatterpolar(
-        r=current,
-        theta=categories,
-        fill='toself',
-        name='Current',
-        line=dict(color=mono_blues[0], width=2),
-        fillcolor=mono_blues[4]
-    ))
-    
-    fig.add_trace(go.Scatterpolar(
-        r=target,
-        theta=categories,
-        fill='toself',
-        name='Target',
-        line=dict(color=mono_blues[2], width=2),
-        fillcolor=mono_greys[5],
-        opacity=0.5
-    ))
-    
-    fig.update_layout(
-        polar=dict(
-            radialaxis=dict(range=[0, 100], tickfont=dict(size=10)),
-            angularaxis=dict(tickfont=dict(size=11))
-        ),
-        showlegend=True,
-        paper_bgcolor='rgba(0,0,0,0)',
-        plot_bgcolor='rgba(0,0,0,0)',
-        font=dict(color=mono_greys[0]),
-        height=500
-    )
-    
-    st.plotly_chart(fig, use_container_width=True)
+    # Create closed loop for radar chart so all connecting lines are visible
+categories = ["Productivity", "Security", "Wellbeing", "Skills"]
+current = [
+    (productivity / 120) * 100,
+    ((100 - security_risk) / 100) * 100,
+    wellbeing["Digital_Wellbeing_Score"].mean() * 100,
+    (skill_readiness / 10) * 100
+]
+target = [85, 85, 80, 70]
+
+# Close the polygon by appending the first value and first label to the end
+categories_closed = categories + [categories[0]]
+current_closed = current + [current[0]]
+target_closed = target + [target[0]]
+
+fig = go.Figure()
+
+fig.add_trace(go.Scatterpolar(
+    r=current_closed,
+    theta=categories_closed,
+    fill='toself',
+    name='Current',
+    line=dict(color=mono_blues[0], width=2),
+    fillcolor=mono_blues[4]
+))
+fig.add_trace(go.Scatterpolar(
+    r=target_closed,
+    theta=categories_closed,
+    fill='toself',
+    name='Target',
+    line=dict(color=mono_blues[2], width=2),
+    fillcolor=mono_greys[5],
+    opacity=0.5
+))
+fig.update_layout(
+    polar=dict(
+        radialaxis=dict(range=[0, 100], tickfont=dict(size=10)),
+        angularaxis=dict(tickfont=dict(size=11))
+    ),
+    showlegend=True,
+    paper_bgcolor='rgba(0,0,0,0)',
+    plot_bgcolor='rgba(0,0,0,0)',
+    font=dict(color=mono_greys[0]),
+    height=500
+)
+
+st.plotly_chart(fig, use_container_width=True)
+
 
 with tab2:
     st.markdown('<div class="story-title">Productivity Analysis</div>', unsafe_allow_html=True)
