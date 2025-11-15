@@ -91,7 +91,7 @@ with tab1:
     col1, col2, col3, col4 = st.columns(4)
     
     with col1:
-        st.metric("Productivity Index", f"{productivity:.1f}")
+        st.metric("Productivity Index", f"{productivity:.1f}%")
     
     with col2:
         st.metric("Burnout Risk", f"{burnout_score:.1f}/10")
@@ -100,7 +100,7 @@ with tab1:
         st.metric("Skill Readiness", f"{skill_readiness:.2f}/10")
     
     with col4:
-        st.metric("Security Risk", f"{security_risk:.1f}")
+        st.metric("Security Risk", f"{security_risk:.1f}%")
         
        
     st.markdown("---")
@@ -331,12 +331,12 @@ with tab5:
     
     col1, col2, col3 = st.columns(3)
     with col1:
-        st.metric("Avg Risk", f"{shadow_it['Risk_Score'].mean():.1f}")
+        st.metric("Avg Risk", f"{shadow_it['Risk_Score'].mean():.1f}%")
     with col2:
         high = len(shadow_it[shadow_it["Risk_Score"] > 60])
         st.metric("High-Risk Cases", f"{high} ({high/len(shadow_it)*100:.1f}%)")
     with col3:
-        st.metric("Unauthorized Apps", f"{shadow_it['Unauthorized_Apps_Count'].mean():.1f}", "Avg per employee")
+        st.metric("Unauthorized Apps", f"{shadow_it['Unauthorized_Apps_Count'].mean():.1f}")
     
     st.markdown("---")
     
