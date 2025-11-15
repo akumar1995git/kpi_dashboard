@@ -101,9 +101,7 @@ with tab1:
     
     with col4:
         st.metric("Security Risk", f"{security_risk:.1f}")
-    
-    st.markdown("---")
-    
+        
        
     st.markdown("---")
     st.subheader("Organizational Health Overview")
@@ -193,7 +191,7 @@ with tab2:
     emp_prod = work_models.groupby("Employee_ID")["Productivity_Index"].mean()
     q1, q2, q3 = emp_prod.quantile([0.25, 0.5, 0.75])
     
-    quartile_options = ["All", "Top Quartile (Q4)", "Second Quartile (Q3)", "Third Quartile (Q2)", "Bottom Quartile (Q1)"]
+    quartile_options = ["Top Quartile (Q4)", "Second Quartile (Q3)", "Third Quartile (Q2)", "Bottom Quartile (Q1)"]
     selected_quartile = st.selectbox("Select Performance Group:", quartile_options)
     
     if selected_quartile == "Top Quartile (Q4)":
