@@ -109,12 +109,12 @@ with tab1:
     # Create closed loop for radar chart so all connecting lines are visible
 categories = ["Productivity", "Security", "Wellbeing", "Skills"]
 current = [
-    (productivity/120) * 100,
+    (productivity) * 100,
     ((100 - security_risk) / 100) * 100,
     wellbeing["Digital_Wellbeing_Score"].mean() * 100,
     (skill_readiness / 10) * 100
 ]
-target = [85, 85, 80, 70]
+target = [100, 85, 80, 70]
 
 # Close the polygon by appending the first value and first label to the end
 categories_closed = categories + [categories[0]]
@@ -142,7 +142,7 @@ fig.add_trace(go.Scatterpolar(
 ))
 fig.update_layout(
     polar=dict(
-        radialaxis=dict(range=[0, 100], tickfont=dict(size=10)),
+        radialaxis=dict(range=[0, 120], tickfont=dict(size=10)),
         angularaxis=dict(tickfont=dict(size=11))
     ),
     showlegend=True,
