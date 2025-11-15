@@ -90,18 +90,7 @@ with tab1:
     
     col1, col2, col3, col4 = st.columns(4)
     
-    with col1:
-        st.metric("Productivity Index", f"{productivity:.1f}", "Scale: 85-120")
-    
-    with col2:
-        st.metric("Burnout Risk", f"{burnout_score:.1f}/10", "Scale: 0-10")
-    
-    with col3:
-        st.metric("Skill Readiness", f"{skill_readiness:.2f}/10", "Scale: 0-10")
-    
-    with col4:
-        st.metric("Security Risk", f"{security_risk:.1f}", "Scale: 0-100")
-    
+        
     st.markdown("---")
     
     # Navigation buttons that redirect to tabs
