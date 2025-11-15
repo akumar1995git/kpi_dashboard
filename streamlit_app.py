@@ -246,7 +246,7 @@ with tab3:
         st.metric("Capacity Utilization", f"{cap:.1f}%")
     with col2:
         burn_avg = burnout["Burnout_Risk_Score"].mean()
-        st.metric("Burnout Risk", f"{burn_avg:.1f}/10", "Scale: 0-10")
+        st.metric("Burnout Risk", f"{burn_avg:.1f}/10")
     with col3:
         coll_avg = collab["Collaboration_Overload_Percentage"].mean() * 100
         st.metric("Collaboration Time", f"{coll_avg:.1f}%")
