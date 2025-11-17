@@ -172,7 +172,7 @@ with tab2:
         st.plotly_chart(fig, use_container_width=True)
     
     with col2:
-        st.subheader("Productivity by Work Model (Dynamic Scale)")
+        st.subheader("Productivity by Work Model")
         model_data = work_models.groupby("Work_Model")["Productivity_Index"].mean()
         min_val = model_data.min()
         max_val = model_data.max()
