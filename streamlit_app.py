@@ -107,52 +107,52 @@ with tab1:
     st.subheader("Organizational Health Overview")
     
     # Create closed loop for radar chart so all connecting lines are visible
-categories = ["Productivity", "Security", "Wellbeing", "Skills"]
-current = [
-    (productivity),
-    ((100 - security_risk) / 100) * 100,
-    wellbeing["Digital_Wellbeing_Score"].mean() * 100,
-    (skill_readiness / 10) * 100
-]
-target = [100, 85, 80, 70]
+    categories = ["Productivity", "Security", "Wellbeing", "Skills"]
+    current = [
+        (productivity),
+        ((100 - security_risk) / 100) * 100,
+        wellbeing["Digital_Wellbeing_Score"].mean() * 100,
+        (skill_readiness / 10) * 100
+    ]
+    target = [100, 85, 80, 70]
 
-# Close the polygon by appending the first value and first label to the end
-categories_closed = categories + [categories[0]]
-current_closed = current + [current[0]]
-target_closed = target + [target[0]]
+    # Close the polygon by appending the first value and first label to the end
+    categories_closed = categories + [categories[0]]
+    current_closed = current + [current[0]]
+    target_closed = target + [target[0]]
 
-fig = go.Figure()
+    fig = go.Figure()
 
-fig.add_trace(go.Scatterpolar(
-    r=current_closed,
-    theta=categories_closed,
-    fill='toself',
-    name='Current',
-    line=dict(color=mono_blues[0], width=2),
-    fillcolor=mono_blues[4]
-))
-fig.add_trace(go.Scatterpolar(
-    r=target_closed,
-    theta=categories_closed,
-    fill='toself',
-    name='Target',
-    line=dict(color=mono_blues[2], width=2),
-    fillcolor=mono_greys[5],
-    opacity=0.5
-))
-fig.update_layout(
-    polar=dict(
-        radialaxis=dict(range=[0, 120], tickfont=dict(size=10)),
-        angularaxis=dict(tickfont=dict(size=11))
-    ),
-    showlegend=True,
-    paper_bgcolor='rgba(0,0,0,0)',
-    plot_bgcolor='rgba(0,0,0,0)',
-    font=dict(color=mono_greys[0]),
-    height=500
-)
+    fig.add_trace(go.Scatterpolar(
+        r=current_closed,
+        theta=categories_closed,
+        fill='toself',
+        name='Current',
+        line=dict(color=mono_blues[0], width=2),
+        fillcolor=mono_blues[4]
+    ))
+    fig.add_trace(go.Scatterpolar(
+        r=target_closed,
+        theta=categories_closed,
+        fill='toself',
+        name='Target',
+        line=dict(color=mono_blues[2], width=2),
+        fillcolor=mono_greys[5],
+        opacity=0.5
+    ))
+    fig.update_layout(
+        polar=dict(
+            radialaxis=dict(range=[0, 120], tickfont=dict(size=10)),
+            angularaxis=dict(tickfont=dict(size=11))
+        ),
+        showlegend=True,
+        paper_bgcolor='rgba(0,0,0,0)',
+        plot_bgcolor='rgba(0,0,0,0)',
+        font=dict(color=mono_greys[0]),
+        height=500
+    )
 
-st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, use_container_width=True)
 
 
 with tab2:
@@ -261,11 +261,38 @@ with tab3:
     month_data = burnout[burnout["Month"] == selected_month]["Burnout_Risk_Score"]
     
     st.subheader(f"Burnout Risk Distribution - {selected_month}")
-    fig = px.histogram(month_data, nbins=15, title=f"Distribution ({selected_month})")
-    fig.update_traces(marker_color=mono_greys[2])
-    fig.update_layout(xaxis_title="Burnout Risk Score", yaxis_title="Frequency",
-                     showlegend=False, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
-    fig.add_vline(x=5, line_dash="dash", line_color=mono_blues[0], annotation_text="High Risk Threshold")
+    
+    # Create histogram with color-coded bars based on threshold
+    threshold = 5
+    
+    # Create bins and count frequencies
+    hist_data = np.histogram(month_data, bins=15)
+    bin_edges = hist_data[1]
+    bin_counts = hist_data[0]
+    bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
+    
+    # Assign colors based on threshold
+    bar_colors = ['#2d5a6d' if x <= threshold else '#e74c3c' for x in bin_centers]
+    
+    fig = go.Figure()
+    fig.add_trace(go.Bar(
+        x=bin_centers,
+        y=bin_counts,
+        marker_color=bar_colors,
+        width=(bin_edges[1] - bin_edges[0]) * 0.9
+    ))
+    
+    fig.add_vline(x=threshold, line_dash="dash", line_color="red", line_width=3, 
+                  annotation_text="High Risk Threshold", annotation_position="top right")
+    
+    fig.update_layout(
+        title=f"Distribution ({selected_month})",
+        xaxis_title="Burnout Risk Score", 
+        yaxis_title="Frequency",
+        showlegend=False, 
+        paper_bgcolor='rgba(0,0,0,0)', 
+        plot_bgcolor='rgba(0,0,0,0)'
+    )
     st.plotly_chart(fig, use_container_width=True)
     
     # Burnout trend
