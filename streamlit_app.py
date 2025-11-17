@@ -259,29 +259,24 @@ with tab3:
     selected_month = st.selectbox("Select Month for Distribution:", available_months, index=len(available_months)-1, key="burnout_month")
     
     month_data = burnout[burnout["Month"] == selected_month]["Burnout_Risk_Score"]
-    
+
     st.subheader(f"Burnout Risk Distribution - {selected_month}")
-    fig = px.histogram(month_data, nbins=15, title=f"Distribution ({selected_month})")
-    fig.update_traces(marker_color=mono_greys[2])
-    fig.update_layout(xaxis_title="Burnout Risk Score", yaxis_title="Frequency",
-                     showlegend=False, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
-    fig.add_vline(x=5, line_dash="dash", line_color=mono_blues[0], annotation_text="High Risk Threshold")
+    # Assign above/below threshold markers to allow color-coding
+    threshold = 5
+    bar_colors = ["#0a7b83" if x <= threshold else "#eb4d4b" for x in month_data]
+    fig = go.Figure()
+    fig.add_trace(go.Histogram(
+        x=month_data,
+        nbinsx=15,
+        marker_color=bar_colors,
+        opacity=0.9
+    ))
+    fig.add_vline(x=threshold, line_dash="dash", line_color="red", line_width=3, annotation_text="High Risk Threshold", annotation_position="top right")
+    fig.update_layout(
+        xaxis_title="Burnout Risk Score", yaxis_title="Frequency",
+        showlegend=False, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)'
+    )
     st.plotly_chart(fig, use_container_width=True)
-    
-    # Burnout trend
-    st.subheader("Average Burnout Risk Trend")
-    burnout_trend = burnout.groupby("Month")["Burnout_Risk_Score"].mean()
-    
-    fig = px.line(x=burnout_trend.index, y=burnout_trend.values, markers=True, title="Monthly Average Burnout Risk")
-    fig.update_traces(line=dict(color=mono_greys[2], width=3), marker=dict(size=8))
-    fig.update_layout(yaxis_title="Burnout Risk Score", xaxis_title="Month",
-                     paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
-    st.plotly_chart(fig, use_container_width=True)
-    
-    with st.expander("View At-Risk Employees"):
-        at_risk = burnout[burnout["Burnout_Risk_Score"] > 5].groupby("Employee_ID")["Burnout_Risk_Score"].mean().sort_values(ascending=False).head(10)
-        for emp, score in at_risk.items():
-            st.warning(f"⚠️ {emp}: {score:.2f}/10")
 
 with tab4:
     st.markdown('<div class="story-title">Skills Development</div>', unsafe_allow_html=True)
