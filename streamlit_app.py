@@ -3,7 +3,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import plotly.express as px
 import numpy as np
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta 
 
 # Page configuration
 st.set_page_config(
