@@ -14,113 +14,155 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom CSS for styling
+# ==================== CUSTOM CSS ====================
 st.markdown("""
     <style>
     .main {
         padding: 0px;
     }
-    .kpi-card {
-        background: white;
-        padding: 20px;
-        border-radius: 8px;
-        border-left: 5px solid #1e40af;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-    }
-    .kpi-card.green {
-        border-left-color: #059669;
-    }
-    .kpi-card.amber {
-        border-left-color: #d97706;
-    }
-    .kpi-card.red {
-        border-left-color: #dc2626;
-    }
-    .metric-value {
-        font-size: 28px;
-        font-weight: 700;
-        color: #1f2937;
-    }
-    .metric-label {
-        font-size: 12px;
-        color: #6b7280;
-        text-transform: uppercase;
-        margin-bottom: 8px;
-    }
-    .status-pill {
-        display: inline-block;
-        padding: 4px 10px;
+
+    /* L1 Top KPI Cards */
+    .l1-kpi-card {
+        background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%);
+        color: white;
+        padding: 25px;
         border-radius: 12px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        text-align: center;
+    }
+
+    .l1-value {
+        font-size: 36px;
+        font-weight: 800;
+        margin: 10px 0;
+    }
+
+    .l1-label {
+        font-size: 13px;
+        opacity: 0.9;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .l1-subtitle {
         font-size: 11px;
-        font-weight: 600;
+        opacity: 0.8;
         margin-top: 8px;
     }
-    .status-good { background: #d1fae5; color: #065f46; }
-    .status-amber { background: #fef3c7; color: #92400e; }
-    .status-red { background: #fee2e2; color: #991b1b; }
-    .trend {
-        font-size: 12px;
-        font-weight: 600;
-        padding: 4px 8px;
-        border-radius: 3px;
-        display: inline-block;
-        margin-top: 6px;
-    }
-    .trend-positive { background: #d1fae5; color: #047857; }
-    .trend-negative { background: #fee2e2; color: #991b1b; }
-    .insight-box {
-        background: #f0f9ff;
-        border-left: 4px solid #0284c7;
-        padding: 15px;
-        border-radius: 5px;
-        margin: 15px 0;
-    }
-    .opportunity-box {
-        background: #f0fdf4;
-        border-left: 4px solid #22c55e;
-        padding: 15px;
-        border-radius: 5px;
-        margin: 15px 0;
-    }
-    .alert-box {
-        background: #fef2f2;
-        border-left: 4px solid #ef4444;
-        padding: 15px;
-        border-radius: 5px;
-        margin: 15px 0;
-    }
-    .data-section {
-        background: #f8fafc;
+
+    /* Objective Cards */
+    .objective-card {
+        background: white;
+        border-radius: 10px;
+        border: 2px solid #e5e7eb;
         padding: 20px;
-        border-radius: 8px;
-        border: 1px solid #e2e8f0;
-        margin-top: 15px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        transition: all 0.3s ease;
     }
-    .expandable-header {
-        cursor: pointer;
+
+    .objective-card:hover {
+        border-color: #1e40af;
+        box-shadow: 0 4px 8px rgba(30, 64, 175, 0.15);
+    }
+
+    .objective-title {
+        font-size: 16px;
+        font-weight: 700;
+        color: #1f2937;
+        margin-bottom: 12px;
         display: flex;
         align-items: center;
-        gap: 10px;
-        padding: 12px;
-        background: #f1f5f9;
-        border-radius: 6px;
-        font-weight: 600;
-        user-select: none;
+        gap: 8px;
     }
-    .expandable-header:hover {
-        background: #e2e8f0;
+
+    .objective-signal {
+        font-size: 12px;
+        color: #6b7280;
+        font-style: italic;
+        margin-bottom: 15px;
+    }
+
+    /* L2 Metric Boxes */
+    .l2-metric {
+        background: #f9fafb;
+        border-left: 4px solid #1e40af;
+        padding: 15px;
+        border-radius: 6px;
+        margin-bottom: 12px;
+    }
+
+    .l2-metric.cost {
+        border-left-color: #ef4444;
+    }
+
+    .l2-metric.quality {
+        border-left-color: #059669;
+    }
+
+    .l2-metric.efficiency {
+        border-left-color: #f59e0b;
+    }
+
+    .l2-metric-title {
+        font-size: 13px;
+        font-weight: 600;
+        color: #1f2937;
+        margin-bottom: 8px;
+    }
+
+    .l2-metric-value {
+        font-size: 24px;
+        font-weight: 700;
+        color: #1e40af;
+    }
+
+    .metric-trend {
+        font-size: 11px;
+        color: #6b7280;
+        margin-top: 6px;
+    }
+
+    /* Export Section */
+    .export-section {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        padding: 20px;
+        border-radius: 10px;
+        margin-top: 30px;
+    }
+
+    .export-header {
+        font-size: 18px;
+        font-weight: 700;
+        color: #1f2937;
+        margin-bottom: 15px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    /* Tab styling */
+    .stTabs [data-baseweb="tab-list"] button [data-testid="stMarkdownContainer"] p {
+        font-size: 14px;
+        font-weight: 600;
+    }
+
+    /* Divider */
+    .divider-custom {
+        border: none;
+        border-top: 2px solid #e5e7eb;
+        margin: 30px 0;
     }
     </style>
 """, unsafe_allow_html=True)
 
-# ==================== LOAD DATA FROM EXCEL ====================
+# ==================== LOAD DATA ====================
 @st.cache_data
 def load_excel_data():
     """Load all data from Excel file"""
     try:
         excel_file = 'COO_ROI_Dashboard_KPIs_Complete_12.xlsx'
 
-        # Load all sheets
         data = {
             'Role_vs_Reality': pd.read_excel(excel_file, sheet_name='Role_vs_Reality_Analysis'),
             'Automation_ROI': pd.read_excel(excel_file, sheet_name='Automation_ROI_Potential'),
@@ -137,58 +179,36 @@ def load_excel_data():
         }
         return data
     except FileNotFoundError:
-        st.error("❌ Excel file 'COO_ROI_Dashboard_KPIs_Complete_12.xlsx' not found.")
+        st.error("❌ Excel file not found: 'COO_ROI_Dashboard_KPIs_Complete_12.xlsx'")
         st.stop()
 
-# Load data
 data = load_excel_data()
 
-# Initialize session state for navigation
-if 'current_page' not in st.session_state:
-    st.session_state.current_page = "Overview"
+# Initialize session state
+if 'current_objective' not in st.session_state:
+    st.session_state.current_objective = "Cost & Efficiency"
 
-# Header
+# ==================== HEADER ====================
 st.markdown("""
-    <div style="background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%); color: white; padding: 25px 20px; border-radius: 0; margin: -25px -20px 25px -20px;">
-        <h1 style="margin: 0;">📊 COO Operational Dashboard</h1>
-        <p style="margin: 5px 0 0 0; opacity: 0.9; font-size: 14px;">Real-time Operational Metrics & KPI Tracking</p>
+    <div style="background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%); 
+                color: white; padding: 30px 20px; border-radius: 0; 
+                margin: -25px -20px 25px -20px; text-align: center;">
+        <h1 style="margin: 0; font-size: 32px;">📊 COO Operational Dashboard</h1>
+        <p style="margin: 8px 0 0 0; opacity: 0.9; font-size: 14px;">Real-time KPI Monitoring & Insights</p>
     </div>
 """, unsafe_allow_html=True)
-
-# ==================== NAVIGATION (Main Screen) ====================
-nav_col1, nav_col2, nav_col3, nav_col4 = st.columns(4)
-
-with nav_col1:
-    if st.button("📊 Overview", use_container_width=True, key="nav_overview"):
-        st.session_state.current_page = "Overview"
-
-with nav_col2:
-    if st.button("💡 Efficiency & Cost", use_container_width=True, key="nav_efficiency"):
-        st.session_state.current_page = "Efficiency & Cost"
-
-with nav_col3:
-    if st.button("⚙️ Execution & Risk", use_container_width=True, key="nav_execution"):
-        st.session_state.current_page = "Execution & Risk"
-
-with nav_col4:
-    if st.button("👥 Workforce & Model", use_container_width=True, key="nav_workforce"):
-        st.session_state.current_page = "Workforce & Model"
-
-st.divider()
 
 # ==================== SIDEBAR FILTERS ====================
 st.sidebar.markdown("## 🔧 Filters")
 
-# Get unique months - DEFAULT: ALL SELECTED
 role_months = sorted(data['Role_vs_Reality']['Month'].unique())
 selected_months = st.sidebar.multiselect(
     "Select Months",
     role_months,
-    default=list(role_months),  # ALL SELECTED BY DEFAULT
+    default=list(role_months),
     key="month_filter"
 )
 
-# Multi-select for departments - DEFAULT: ALL SELECTED
 all_departments = sorted(
     list(set(list(data['Role_vs_Reality'].get('Department', []).unique()) + 
              list(data['Capacity'].get('Department', []).unique())))
@@ -196,1069 +216,384 @@ all_departments = sorted(
 selected_depts = st.sidebar.multiselect(
     "Select Departments",
     all_departments,
-    default=all_departments,  # ALL SELECTED BY DEFAULT
+    default=all_departments,
     key="dept_filter"
 )
 
-# Filter handling
 dept_filter = selected_depts if len(selected_depts) > 0 else None
 
-# Real-time toggle
-real_time = st.sidebar.checkbox("Real-time Updates", value=True)
-
 st.sidebar.markdown("---")
-st.sidebar.markdown(f"**Data Source:** COO_ROI_Dashboard_KPIs_Complete_12.xlsx")
 st.sidebar.markdown(f"**Last Updated:** {datetime.now().strftime('%Y-%m-%d %H:%M')}")
 
-# ==================== HELPER FUNCTIONS ====================
-def export_dataframe_to_excel(df, sheet_name="Data"):
-    """Convert dataframe to Excel for download"""
-    output = io.BytesIO()
-    with pd.ExcelWriter(output, engine='openpyxl') as writer:
-        df.to_excel(writer, sheet_name=sheet_name, index=False)
-    return output.getvalue()
+# ==================== DATA FILTERING HELPER ====================
+def filter_data(df, month_col='Month', dept_col='Department'):
+    """Filter dataframe by selected months and departments"""
+    result = df[df[month_col].isin(selected_months)]
+    if dept_filter and dept_col in result.columns:
+        result = result[result[dept_col].isin(dept_filter)]
+    return result
 
-def create_trend_chart(data_df, x_col, y_col, title, y_title, color='#1e40af'):
-    """Create a trend line chart"""
-    if len(data_df) == 0:
-        return None
+# ==================== L1: TOP KPIs ====================
+st.markdown("### 📈 L1: Executive KPIs")
 
-    fig = go.Figure()
-    fig.add_trace(go.Scatter(
-        x=data_df[x_col],
-        y=data_df[y_col],
-        mode='lines+markers',
-        line=dict(color=color, width=3),
-        marker=dict(size=8),
-        fill='tozeroy',
-        fillcolor=f'rgba({int(color[1:3], 16)}, {int(color[3:5], 16)}, {int(color[5:7], 16)}, 0.1)'
-    ))
-    fig.update_layout(
-        title=title,
-        height=300,
-        margin=dict(l=0, r=0, t=30, b=0),
-        showlegend=False,
-        xaxis_title=x_col,
-        yaxis_title=y_title,
-        plot_bgcolor="rgba(0,0,0,0)",
-        hovermode='x unified'
+# Calculate metrics
+role_data = filter_data(data['Role_vs_Reality'])
+auto_data = filter_data(data['Automation_ROI'])
+ftr_data = filter_data(data['FTR_Rate'])
+capacity_data = filter_data(data['Capacity'])
+work_data = filter_data(data['Work_Models'])
+
+rework_pct = data['Process_Rework'][data['Process_Rework']['Month'].isin(selected_months)]['Rework_Cost_Percentage'].mean() if len(selected_months) > 0 else 0
+auto_roi = auto_data['ROI_Percentage_6M'].mean() if len(auto_data) > 0 else 0
+ftr_rate = ftr_data['FTR_Rate_Percentage'].mean() if len(ftr_data) > 0 else 0
+avg_capacity = capacity_data['Capacity_Utilization_Percentage'].mean() if len(capacity_data) > 0 else 0
+avg_output = work_data['Output_Per_Hour'].mean() if len(work_data) > 0 else 0
+
+# L1 KPI Row
+col1, col2, col3 = st.columns(3, gap="medium")
+
+with col1:
+    st.markdown(f"""
+    <div class="l1-kpi-card">
+        <div class="l1-label">💰 Rework Cost %</div>
+        <div class="l1-value">{rework_pct:.1f}%</div>
+        <div class="l1-subtitle">Cost & Efficiency Signal</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+with col2:
+    st.markdown(f"""
+    <div class="l1-kpi-card">
+        <div class="l1-label">✅ FTR Rate</div>
+        <div class="l1-value">{ftr_rate:.0f}%</div>
+        <div class="l1-subtitle">Quality Signal</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+with col3:
+    st.markdown(f"""
+    <div class="l1-kpi-card">
+        <div class="l1-label">⚡ Output/FTE</div>
+        <div class="l1-value">{avg_output:.2f}</div>
+        <div class="l1-subtitle">Productivity Signal</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+st.markdown("<br>", unsafe_allow_html=True)
+
+# ==================== L2: OBJECTIVE CARDS ====================
+st.markdown("### 🎯 L2: Objective Deep-Dives")
+
+col1, col2, col3 = st.columns(3, gap="medium")
+
+# -------- OBJECTIVE 1: COST & EFFICIENCY --------
+with col1:
+    st.markdown("""
+    <div class="objective-card">
+        <div class="objective-title">💡 Cost & Efficiency</div>
+        <div class="objective-signal">Financial signal: Control costs & maximize output</div>
+    """, unsafe_allow_html=True)
+
+    # L2 Metrics
+    rework_cost = data['Process_Rework'][data['Process_Rework']['Month'].isin(selected_months)]['Rework_Cost_Dollars'].sum()
+
+    st.markdown(f"""
+    <div class="l2-metric cost">
+        <div class="l2-metric-title">💸 Rework Cost</div>
+        <div class="l2-metric-value">${rework_cost:,.0f}</div>
+        <div class="metric-trend">Monthly cost impact</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    auto_value = auto_data['Monthly_Cost_Savings'].sum() if len(auto_data) > 0 else 0
+    st.markdown(f"""
+    <div class="l2-metric efficiency">
+        <div class="l2-metric-title">🤖 Automation ROI</div>
+        <div class="l2-metric-value">{auto_roi:.0f}%</div>
+        <div class="metric-trend">{auto_value:,.0f} monthly savings</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    digital_index = data['Digital_Index'][data['Digital_Index']['Month'].isin(selected_months)]['Friction_Index_Score'].mean()
+    st.markdown(f"""
+    <div class="l2-metric efficiency">
+        <div class="l2-metric-title">📱 Digital Friction Index</div>
+        <div class="l2-metric-value">{digital_index:.1f}</div>
+        <div class="metric-trend">Lower is better</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    low_value = role_data['Low_Value_Work_Percentage'].mean() if len(role_data) > 0 else 0
+    st.markdown(f"""
+    <div class="l2-metric cost">
+        <div class="l2-metric-title">📊 Low-Value Work %</div>
+        <div class="l2-metric-value">{low_value:.1f}%</div>
+        <div class="metric-trend">Role optimization opportunity</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Expandable details
+    if st.checkbox("📋 View Cost & Efficiency Details", key="obj1_details"):
+        st.markdown("#### Key Metrics by Department")
+
+        dept_summary = role_data.groupby('Department').agg({
+            'Low_Value_Work_Percentage': 'mean',
+            'Opportunity_Cost_Dollars': 'sum'
+        }).sort_values('Opportunity_Cost_Dollars', ascending=False)
+        st.dataframe(dept_summary, use_container_width=True)
+
+    st.markdown("</div>", unsafe_allow_html=True)
+
+# -------- OBJECTIVE 2: EXECUTION & RESILIENCE --------
+with col2:
+    st.markdown("""
+    <div class="objective-card">
+        <div class="objective-title">⚙️ Execution & Resilience</div>
+        <div class="objective-signal">Quality signal: Minimize errors & build resilience</div>
+    """, unsafe_allow_html=True)
+
+    resilience_score = data['Resilience'][data['Resilience']['Month'].isin(selected_months)]['Resilience_Score'].mean()
+    st.markdown(f"""
+    <div class="l2-metric quality">
+        <div class="l2-metric-title">🛡️ Resilience Score</div>
+        <div class="l2-metric-value">{resilience_score:.1f}/10</div>
+        <div class="metric-trend">Process robustness</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown(f"""
+    <div class="l2-metric quality">
+        <div class="l2-metric-title">✅ FTR Rate</div>
+        <div class="l2-metric-value">{ftr_rate:.1f}%</div>
+        <div class="metric-trend">First-time accuracy</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    adherence_rate = data['Adherence'][data['Adherence']['Month'].isin(selected_months)]['Adherence_Rate_Percentage'].mean()
+    st.markdown(f"""
+    <div class="l2-metric quality">
+        <div class="l2-metric-title">📋 Process Adherence</div>
+        <div class="l2-metric-value">{adherence_rate:.1f}%</div>
+        <div class="metric-trend">Policy compliance</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    escalations = data['Escalation'][data['Escalation']['Month'].isin(selected_months)]['Step_Exception_Count'].sum()
+    st.markdown(f"""
+    <div class="l2-metric cost">
+        <div class="l2-metric-title">🚨 Escalations</div>
+        <div class="l2-metric-value">{escalations:.0f}</div>
+        <div class="metric-trend">Exception volume</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Expandable details
+    if st.checkbox("📋 View Execution & Resilience Details", key="obj2_details"):
+        st.markdown("#### FTR by Process")
+
+        ftr_summary = ftr_data.groupby('Process').agg({
+            'FTR_Rate_Percentage': 'mean',
+            'Error_Rate_Percentage': 'mean'
+        }).sort_values('FTR_Rate_Percentage')
+        st.dataframe(ftr_summary, use_container_width=True)
+
+    st.markdown("</div>", unsafe_allow_html=True)
+
+# -------- OBJECTIVE 3: WORKFORCE & PRODUCTIVITY --------
+with col3:
+    st.markdown("""
+    <div class="objective-card">
+        <div class="objective-title">👥 Workforce & Productivity</div>
+        <div class="objective-signal">Efficiency signal: Optimize capacity & output</div>
+    """, unsafe_allow_html=True)
+
+    st.markdown(f"""
+    <div class="l2-metric efficiency">
+        <div class="l2-metric-title">⚡ Output/FTE</div>
+        <div class="l2-metric-value">{avg_output:.2f}</div>
+        <div class="metric-trend">Productivity per agent</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown(f"""
+    <div class="l2-metric efficiency">
+        <div class="l2-metric-title">📊 Capacity Utilization</div>
+        <div class="l2-metric-value">{avg_capacity:.0f}%</div>
+        <div class="metric-trend">Workload balance</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    burnout_count = capacity_data[capacity_data['Burnout_Risk_Flag'] == 'Yes'].shape[0]
+    st.markdown(f"""
+    <div class="l2-metric cost">
+        <div class="l2-metric-title">🔥 At-Risk Employees</div>
+        <div class="l2-metric-value">{burnout_count}</div>
+        <div class="metric-trend">Burnout risk count</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    collab_hours = data['Collaboration'][data['Collaboration']['Month'].isin(selected_months)]['Collaboration_Tools_Time_Hours'].mean()
+    st.markdown(f"""
+    <div class="l2-metric efficiency">
+        <div class="l2-metric-title">🗣️ Collab Hours</div>
+        <div class="l2-metric-value">{collab_hours:.1f} hrs</div>
+        <div class="metric-trend">Daily collaboration time</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Expandable details
+    if st.checkbox("📋 View Workforce & Productivity Details", key="obj3_details"):
+        st.markdown("#### Capacity by Department")
+
+        capacity_summary = capacity_data.groupby('Department').agg({
+            'Capacity_Utilization_Percentage': 'mean'
+        }).sort_values('Capacity_Utilization_Percentage', ascending=False)
+        st.dataframe(capacity_summary, use_container_width=True)
+
+    st.markdown("</div>", unsafe_allow_html=True)
+
+st.markdown("<br>", unsafe_allow_html=True)
+
+# ==================== L3: DETAILED DATA & EXPORTS ====================
+st.markdown("""<div class="divider-custom"></div>""", unsafe_allow_html=True)
+
+st.markdown("""
+<div class="export-section">
+    <div class="export-header">📂 L3: Detailed Data & Exports</div>
+""", unsafe_allow_html=True)
+
+tab1, tab2 = st.tabs(["📊 KPI Sheet Selector", "📥 Download & Export"])
+
+# -------- TAB 1: KPI SELECTOR --------
+with tab1:
+    st.markdown("#### Select KPI Sheet to View")
+
+    sheet_map = {
+        "Role vs Reality": "Role_vs_Reality",
+        "Automation ROI": "Automation_ROI",
+        "Digital Workplace Index": "Digital_Index",
+        "Process Rework Cost": "Process_Rework",
+        "FTR Rate": "FTR_Rate",
+        "Process Adherence": "Adherence",
+        "Resilience Score": "Resilience",
+        "Escalation Patterns": "Escalation",
+        "Hidden Capacity & Burnout": "Capacity",
+        "Capacity Model Accuracy": "Model_Accuracy",
+        "Work Models Effectiveness": "Work_Models",
+        "Collaboration Overload": "Collaboration",
+    }
+
+    selected_sheet = st.selectbox(
+        "🔍 Choose KPI sheet:",
+        list(sheet_map.keys()),
+        index=0
     )
-    return fig
 
-def show_detailed_data(data_df, title, columns=None):
-    """Show detailed data table"""
-    st.markdown(f"### 📋 {title}")
-    if columns:
-        display_df = data_df[columns].copy()
-    else:
-        display_df = data_df.copy()
-    st.dataframe(display_df, use_container_width=True, hide_index=True)
+    key_name = sheet_map[selected_sheet]
+    sheet_df = data[key_name].copy()
 
-    # Export button
-    csv = display_df.to_csv(index=False)
-    st.download_button(
-        label=f"📥 Download {title} (CSV)",
-        data=csv,
-        file_name=f"{title.replace(' ', '_')}.csv",
-        mime="text/csv"
-    )
+    # Filter by selected months
+    if 'Month' in sheet_df.columns:
+        sheet_df = sheet_df[sheet_df['Month'].isin(selected_months)]
 
-# ==================== OVERVIEW TAB ====================
-if st.session_state.current_page == "Overview":
-    st.markdown("### Executive Summary - All KPIs")
+    # Filter by departments if applicable
+    if 'Department' in sheet_df.columns and dept_filter:
+        sheet_df = sheet_df[sheet_df['Department'].isin(dept_filter)]
 
-    # Use all selected months and departments
-    role_latest = data['Role_vs_Reality'][data['Role_vs_Reality']['Month'].isin(selected_months)]
-    if dept_filter:
-        role_latest = role_latest[role_latest['Department'].isin(dept_filter)]
+    st.info(f"📋 **{selected_sheet}** | {len(sheet_df)} records")
 
-    auto_latest = data['Automation_ROI'][data['Automation_ROI']['Month'].isin(selected_months)]
-    digital_latest = data['Digital_Index'][data['Digital_Index']['Month'].isin(selected_months)]
-    if dept_filter:
-        digital_latest = digital_latest[digital_latest['Department'].isin(dept_filter)]
+    # Show preview
+    st.markdown("#### Data Preview (First 50 rows)")
+    st.dataframe(sheet_df.head(50), use_container_width=True, hide_index=True)
 
-    rework_latest = data['Process_Rework'][data['Process_Rework']['Month'].isin(selected_months)]
-    if dept_filter:
-        rework_latest = rework_latest[rework_latest['Department'].isin(dept_filter)]
-
-    ftr_latest = data['FTR_Rate'][data['FTR_Rate']['Month'].isin(selected_months)]
-    adherence_latest = data['Adherence'][data['Adherence']['Month'].isin(selected_months)]
-    resilience_latest = data['Resilience'][data['Resilience']['Month'].isin(selected_months)]
-    escalation_latest = data['Escalation'][data['Escalation']['Month'].isin(selected_months)]
-    capacity_latest = data['Capacity'][data['Capacity']['Month'].isin(selected_months)]
-    if dept_filter:
-        capacity_latest = capacity_latest[capacity_latest['Department'].isin(dept_filter)]
-
-    model_latest = data['Model_Accuracy'][data['Model_Accuracy']['Month'].isin(selected_months)]
-    work_latest = data['Work_Models'][data['Work_Models']['Month'].isin(selected_months)]
-    collab_latest = data['Collaboration'][data['Collaboration']['Month'].isin(selected_months)]
-
-    # Calculate metrics
-    avg_low_value = role_latest['Low_Value_Work_Percentage'].mean()
-    total_opportunity = role_latest['Opportunity_Cost_Dollars'].sum()
-    avg_roi = auto_latest['ROI_Percentage_6M'].mean() if len(auto_latest) > 0 else 0
-    avg_friction = digital_latest['Friction_Index_Score'].mean()
-    avg_rework = rework_latest['Rework_Cost_Percentage'].mean()
-    avg_resilience = resilience_latest['Resilience_Score'].mean()
-    avg_ftr = ftr_latest['FTR_Rate_Percentage'].mean()
-    avg_adherence = adherence_latest['Adherence_Rate_Percentage'].mean()
-    total_escalations = escalation_latest['Step_Exception_Count'].sum()
-    burnout_count = capacity_latest[capacity_latest['Burnout_Risk_Flag'] == 'Yes'].shape[0]
-    avg_model_acc = model_latest['Forecast_Accuracy_Percentage'].mean()
-    avg_collab = collab_latest['Collaboration_Tools_Time_Hours'].mean()
-
-    st.info(f"📊 Showing data for: {len(selected_months)} months | {len(dept_filter) if dept_filter else len(all_departments)} departments")
-
-    # KPI Cards - Row 1
-    col1, col2, col3, col4 = st.columns(4)
-
-    with col1:
-        status_color = 'amber' if avg_low_value > 25 else 'green'
-        st.markdown(f"""
-        <div class="kpi-card {status_color}">
-            <div class="metric-label">Low-Value Work %</div>
-            <div class="metric-value">{avg_low_value:.1f}%</div>
-            <div class="trend trend-negative">↑ +2.1%</div>
-            <div class="status-pill status-{'amber' if status_color == 'amber' else 'good'}">Monitor</div>
-        </div>
-        """, unsafe_allow_html=True)
-
-    with col2:
-        st.markdown(f"""
-        <div class="kpi-card green">
-            <div class="metric-label">Monthly Opportunity</div>
-            <div class="metric-value">${total_opportunity:,.0f}</div>
-            <div class="trend trend-positive">↑ +$12K</div>
-            <div class="status-pill status-amber">High</div>
-        </div>
-        """, unsafe_allow_html=True)
-
-    with col3:
-        st.markdown(f"""
-        <div class="kpi-card amber">
-            <div class="metric-label">Avg Friction Index</div>
-            <div class="metric-value">{avg_friction:.1f}</div>
-            <div class="trend trend-negative">↓ -3.2</div>
-            <div class="status-pill status-amber">Improve</div>
-        </div>
-        """, unsafe_allow_html=True)
-
-    with col4:
-        rework_status = 'red' if avg_rework > 5 else 'amber' if avg_rework > 3 else 'green'
-        st.markdown(f"""
-        <div class="kpi-card {rework_status}">
-            <div class="metric-label">Avg Rework Cost %</div>
-            <div class="metric-value">{avg_rework:.1f}%</div>
-            <div class="trend trend-negative">↑ +0.3%</div>
-            <div class="status-pill status-{'red' if rework_status == 'red' else 'amber'}">Alert</div>
-        </div>
-        """, unsafe_allow_html=True)
-
-    st.markdown("")
-
-    # KPI Cards - Row 2
-    col1, col2, col3, col4 = st.columns(4)
-
-    with col1:
-        st.markdown(f"""
-        <div class="kpi-card amber">
-            <div class="metric-label">Resilience Score</div>
-            <div class="metric-value">{avg_resilience:.1f}/10</div>
-            <div class="trend trend-positive">↑ +0.5</div>
-            <div class="status-pill status-amber">Fair</div>
-        </div>
-        """, unsafe_allow_html=True)
-
-    with col2:
-        ftr_status = 'red' if avg_ftr < 70 else 'amber' if avg_ftr < 85 else 'green'
-        st.markdown(f"""
-        <div class="kpi-card {ftr_status}">
-            <div class="metric-label">FTR Rate</div>
-            <div class="metric-value">{avg_ftr:.1f}%</div>
-            <div class="trend trend-positive">↑ +2.3%</div>
-            <div class="status-pill status-{'green' if ftr_status == 'green' else 'amber'}">Improve</div>
-        </div>
-        """, unsafe_allow_html=True)
-
-    with col3:
-        adh_status = 'red' if avg_adherence < 70 else 'amber' if avg_adherence < 85 else 'green'
-        st.markdown(f"""
-        <div class="kpi-card {adh_status}">
-            <div class="metric-label">Process Adherence</div>
-            <div class="metric-value">{avg_adherence:.1f}%</div>
-            <div class="trend trend-negative">↓ -1.2%</div>
-            <div class="status-pill status-{'amber' if adh_status != 'green' else 'good'}">Monitor</div>
-        </div>
-        """, unsafe_allow_html=True)
-
-    with col4:
-        st.markdown(f"""
-        <div class="kpi-card red">
-            <div class="metric-label">Escalations</div>
-            <div class="metric-value">{total_escalations:.0f}</div>
-            <div class="trend trend-negative">↑ +8%</div>
-            <div class="status-pill status-red">Alert</div>
-        </div>
-        """, unsafe_allow_html=True)
-
-    st.markdown("")
-
-    # KPI Cards - Row 3
-    col1, col2, col3, col4 = st.columns(4)
-
-    with col1:
-        burnout_status = 'red' if burnout_count > 20 else 'amber' if burnout_count > 10 else 'green'
-        st.markdown(f"""
-        <div class="kpi-card {burnout_status}">
-            <div class="metric-label">At-Risk Employees</div>
-            <div class="metric-value">{burnout_count}</div>
-            <div class="trend trend-negative">↑ +3</div>
-            <div class="status-pill status-red">Critical</div>
-        </div>
-        """, unsafe_allow_html=True)
-
-    with col2:
-        st.markdown(f"""
-        <div class="kpi-card amber">
-            <div class="metric-label">Model Accuracy</div>
-            <div class="metric-value">{avg_model_acc:.1f}%</div>
-            <div class="trend trend-positive">↑ +4.1%</div>
-            <div class="status-pill status-amber">Improving</div>
-        </div>
-        """, unsafe_allow_html=True)
-
-    with col3:
-        avg_roi_display = avg_roi if avg_roi > 0 else 0
-        st.markdown(f"""
-        <div class="kpi-card green">
-            <div class="metric-label">Avg Automation ROI</div>
-            <div class="metric-value">{avg_roi_display:.0f}%</div>
-            <div class="trend trend-positive">↑ +125%</div>
-            <div class="status-pill status-good">Excellent</div>
-        </div>
-        """, unsafe_allow_html=True)
-
-    with col4:
-        st.markdown(f"""
-        <div class="kpi-card red">
-            <div class="metric-label">Collab Hours</div>
-            <div class="metric-value">{avg_collab:.1f} hrs</div>
-            <div class="trend trend-negative">↑ +0.3 hrs</div>
-            <div class="status-pill status-red">High</div>
-        </div>
-        """, unsafe_allow_html=True)
-
-    st.divider()
-
-    # KEY INSIGHTS & OPPORTUNITIES
-    st.markdown("### 💡 Key Insights & Opportunities")
+# -------- TAB 2: DOWNLOAD & EXPORT --------
+with tab2:
+    st.markdown("#### 📥 Export Options")
 
     col1, col2 = st.columns(2)
 
     with col1:
-        st.markdown("""
-        <div class="insight-box">
-            <strong>🔍 Insight: Low-Value Work Burden</strong><br>
-            Employees are spending significant time on non-core tasks that don't add strategic value.
-        </div>
-        """, unsafe_allow_html=True)
+        st.markdown("**Current View (Filtered)**")
 
-        if st.checkbox("📊 Show details", key="insight_lowvalue"):
-            low_value_detail = role_latest.groupby('Role').agg({
-                'Low_Value_Work_Percentage': 'mean',
-                'Opportunity_Cost_Dollars': 'sum'
-            }).sort_values('Opportunity_Cost_Dollars', ascending=False)
-            st.dataframe(low_value_detail, use_container_width=True)
+        # Current view - combine all filtered data for overview
+        all_filtered = pd.concat([
+            filter_data(data['Role_vs_Reality']),
+            filter_data(data['Automation_ROI']),
+            filter_data(data['FTR_Rate']),
+        ], ignore_index=True)
 
-    with col2:
-        st.markdown(f"""
-        <div class="opportunity-box">
-            <strong>🎯 Opportunity: Automation ROI</strong><br>
-            Average ROI of {avg_roi_display:.0f}% on automation projects - exceptional returns.
-        </div>
-        """, unsafe_allow_html=True)
-
-        if st.checkbox("📊 Show details", key="opp_automation"):
-            auto_detail = auto_latest.groupby('Process_Name').agg({
-                'ROI_Percentage_6M': 'mean',
-                'Monthly_Cost_Savings': 'sum'
-            }).sort_values('ROI_Percentage_6M', ascending=False).head(10)
-            st.dataframe(auto_detail, use_container_width=True)
-
-    col1, col2 = st.columns(2)
-
-    with col1:
-        st.markdown(f"""
-        <div class="alert-box">
-            <strong>⚠️ Alert: Escalation Spike</strong><br>
-            {total_escalations:.0f} escalations indicate process bottlenecks requiring attention.
-        </div>
-        """, unsafe_allow_html=True)
-
-        if st.checkbox("📊 Show details", key="alert_escalation"):
-            esc_detail = escalation_latest.groupby('Process').agg({
-                'Step_Exception_Count': 'sum',
-                'Exception_Rate_Percentage': 'mean'
-            }).sort_values('Step_Exception_Count', ascending=False).head(10)
-            st.dataframe(esc_detail, use_container_width=True)
-
-    with col2:
-        if burnout_count > 10:
-            st.markdown(f"""
-            <div class="alert-box">
-                <strong>🔴 Critical: Burnout Risk</strong><br>
-                {burnout_count} employees at risk. Immediate capacity rebalancing required.
-            </div>
-            """, unsafe_allow_html=True)
-
-            if st.checkbox("📊 Show details", key="alert_burnout"):
-                burnout_detail = capacity_latest[capacity_latest['Burnout_Risk_Flag'] == 'Yes'][['Department', 'Role', 'Capacity_Utilization_Percentage']].drop_duplicates()
-                st.dataframe(burnout_detail, use_container_width=True)
-
-# ==================== EFFICIENCY & COST TAB ====================
-elif st.session_state.current_page == "Efficiency & Cost":
-    st.markdown("### 💡 Efficiency & Cost Management")
-
-    # Filter data
-    role_data = data['Role_vs_Reality'][data['Role_vs_Reality']['Month'].isin(selected_months)]
-    if dept_filter:
-        role_data = role_data[role_data['Department'].isin(dept_filter)]
-
-    auto_data = data['Automation_ROI'][data['Automation_ROI']['Month'].isin(selected_months)]
-    digital_data = data['Digital_Index'][data['Digital_Index']['Month'].isin(selected_months)]
-    if dept_filter:
-        digital_data = digital_data[digital_data['Department'].isin(dept_filter)]
-
-    rework_data = data['Process_Rework'][data['Process_Rework']['Month'].isin(selected_months)]
-    if dept_filter:
-        rework_data = rework_data[rework_data['Department'].isin(dept_filter)]
-
-    st.info(f"📊 Showing {len(role_data)} records from {len(selected_months)} months")
-
-    # ===== Section 1: Role vs Reality =====
-    st.markdown("#### 💰 Role vs. Reality Analysis")
-
-    col1, col2 = st.columns([1, 1])
-    with col1:
-        avg_low = role_data['Low_Value_Work_Percentage'].mean()
-        st.markdown(f"""
-        <div class="kpi-card amber">
-            <div class="metric-label">Low-Value Work</div>
-            <div class="metric-value">{avg_low:.1f}%</div>
-            <div class="trend trend-positive">↑ +2.1%</div>
-            <div class="status-pill status-amber">Review</div>
-        </div>
-        """, unsafe_allow_html=True)
-    with col2:
-        total_impact = role_data['Opportunity_Cost_Dollars'].sum()
-        st.markdown(f"""
-        <div class="kpi-card amber">
-            <div class="metric-label">Total Opportunity Cost</div>
-            <div class="metric-value">${total_impact:,.0f}</div>
-            <div class="trend trend-positive">↑ +$8.5K</div>
-            <div class="status-pill status-amber">High</div>
-        </div>
-        """, unsafe_allow_html=True)
-
-    # Combined chart: Low-Value % and Cost
-    st.markdown("**Low-Value Work by Role & Impact (Dual Axis)**")
-    role_summary = role_data.groupby('Role').agg({
-        'Low_Value_Work_Percentage': 'mean',
-        'Opportunity_Cost_Dollars': 'sum'
-    }).sort_values('Opportunity_Cost_Dollars', ascending=False).head(8)
-
-    fig = go.Figure()
-    fig.add_trace(go.Bar(
-        x=role_summary.index,
-        y=role_summary['Low_Value_Work_Percentage'],
-        name='Low-Value Work %',
-        marker_color='#f59e0b',
-        yaxis='y1'
-    ))
-    fig.add_trace(go.Scatter(
-        x=role_summary.index,
-        y=role_summary['Opportunity_Cost_Dollars'],
-        name='Opportunity Cost ($)',
-        yaxis='y2',
-        mode='lines+markers',
-        line=dict(color='#dc2626', width=3),
-        marker=dict(size=10)
-    ))
-
-    fig.update_layout(
-        title='Low-Value Work Percentage vs Opportunity Cost',
-        yaxis=dict(title='Low-Value Work (%)', side='left'),
-        yaxis2=dict(title='Opportunity Cost ($)', overlaying='y', side='right'),
-        height=400,
-        hovermode='x unified',
-        plot_bgcolor="rgba(0,0,0,0)",
-        xaxis_tickangle=-45
-    )
-    st.plotly_chart(fig, use_container_width=True)
-
-    # Opportunity insight with expandable details
-    annual_opp = role_data['Opportunity_Cost_Dollars'].sum() * 12
-    st.markdown(f"""
-    <div class="opportunity-box">
-        <strong>🎯 Opportunity: Role Optimization</strong><br>
-        Annual potential: ${annual_opp:,.0f} | Reallocate {int(role_data['Opportunity_Cost_Dollars'].sum() / 75)} FTE hours
-    </div>
-    """, unsafe_allow_html=True)
-
-    if st.checkbox("📊 Show detailed breakdown", key="role_details"):
-        show_detailed_data(
-            role_data.groupby('Role').agg({
-                'Low_Value_Work_Percentage': 'mean',
-                'High_Value_Work_Percentage': 'mean',
-                'Opportunity_Cost_Dollars': 'sum'
-            }).reset_index().sort_values('Opportunity_Cost_Dollars', ascending=False),
-            "Role vs Reality Details",
-            ['Role', 'Low_Value_Work_Percentage', 'High_Value_Work_Percentage', 'Opportunity_Cost_Dollars']
+        csv_current = all_filtered.to_csv(index=False)
+        st.download_button(
+            label="📥 Download Current View (CSV)",
+            data=csv_current,
+            file_name="dashboard_current_view.csv",
+            mime="text/csv",
+            key="dl_current_view"
         )
 
-    # Trend
-    role_trend = data['Role_vs_Reality'][data['Role_vs_Reality']['Month'].isin(selected_months)].groupby('Month').agg({
-        'Low_Value_Work_Percentage': 'mean',
-        'Opportunity_Cost_Dollars': 'sum'
-    }).reset_index().sort_values('Month')
-
-    if len(role_trend) > 1:
-        st.markdown("**Trend Over Time**")
-        fig = create_trend_chart(role_trend, 'Month', 'Low_Value_Work_Percentage', 'Low-Value Work Trend', 'Percentage (%)', '#dc2626')
-        st.plotly_chart(fig, use_container_width=True)
-
-    st.divider()
-
-    # ===== Section 2: Automation ROI =====
-    st.markdown("#### 🤖 Automation ROI Potential")
-
-    col1, col2 = st.columns([1, 1])
-    with col1:
-        avg_roi = auto_data['ROI_Percentage_6M'].mean()
-        st.markdown(f"""
-        <div class="kpi-card green">
-            <div class="metric-label">Avg ROI (6M)</div>
-            <div class="metric-value">{avg_roi:.0f}%</div>
-            <div class="trend trend-positive">↑ +128%</div>
-            <div class="status-pill status-good">Excellent</div>
-        </div>
-        """, unsafe_allow_html=True)
     with col2:
-        total_savings = auto_data['Monthly_Hours_Saved'].sum()
-        st.markdown(f"""
-        <div class="kpi-card green">
-            <div class="metric-label">Monthly Hours Saved</div>
-            <div class="metric-value">{total_savings:.0f} hrs</div>
-            <div class="trend trend-positive">↑ +142 hrs</div>
-            <div class="status-pill status-good">High</div>
-        </div>
-        """, unsafe_allow_html=True)
+        st.markdown("**Selected KPI Sheet**")
 
-    # Combined chart: ROI % and Cost Savings
-    st.markdown("**Top Automation Projects: ROI vs Cost Savings (Dual Axis)**")
-    auto_sorted = auto_data.sort_values('ROI_Percentage_6M', ascending=False).head(8)
-
-    fig = go.Figure()
-    fig.add_trace(go.Bar(
-        y=auto_sorted['Process_Name'],
-        x=auto_sorted['ROI_Percentage_6M'],
-        name='ROI %',
-        marker_color='#059669',
-        orientation='h',
-        xaxis='x1'
-    ))
-    fig.add_trace(go.Scatter(
-        y=auto_sorted['Process_Name'],
-        x=auto_sorted['Monthly_Cost_Savings'],
-        name='Monthly Savings ($)',
-        mode='markers',
-        marker=dict(size=12, color='#dc2626'),
-        xaxis='x2'
-    ))
-
-    fig.update_layout(
-        title='Automation Projects: ROI vs Monthly Savings',
-        xaxis=dict(title='ROI %'),
-        xaxis2=dict(title='Monthly Savings ($)', overlaying='x', side='top'),
-        height=400,
-        hovermode='y unified',
-        plot_bgcolor="rgba(0,0,0,0)"
-    )
-    st.plotly_chart(fig, use_container_width=True)
-
-    # Opportunity
-    if len(auto_sorted) > 0:
-        top = auto_sorted.iloc[0]
-        total_savings_cost = auto_data['Monthly_Cost_Savings'].sum() * 6
-        st.markdown(f"""
-        <div class="opportunity-box">
-            <strong>🎯 Opportunity: Scale Top Projects</strong><br>
-            6-Month Savings: ${total_savings_cost:,.0f} | Expand {top['Process_Name']} to other departments
-        </div>
-        """, unsafe_allow_html=True)
-
-        if st.checkbox("📊 Show project details", key="auto_details"):
-            show_detailed_data(
-                auto_data[['Process_Name', 'Task_Type', 'Monthly_Hours_Saved', 'Monthly_Cost_Savings', 'ROI_Percentage_6M']].head(20),
-                "Automation ROI Details"
-            )
-
-    # Trend
-    auto_trend = data['Automation_ROI'][data['Automation_ROI']['Month'].isin(selected_months)].groupby('Month').agg({
-        'ROI_Percentage_6M': 'mean'
-    }).reset_index().sort_values('Month')
-
-    if len(auto_trend) > 1:
-        st.markdown("**Trend Over Time**")
-        fig = create_trend_chart(auto_trend, 'Month', 'ROI_Percentage_6M', 'Automation ROI Trend', 'ROI %', '#059669')
-        st.plotly_chart(fig, use_container_width=True)
-
-    st.divider()
-
-    # ===== Section 3: Digital Workplace Index =====
-    st.markdown("#### 📱 Digital Workplace Index")
-
-    col1, col2 = st.columns([1, 1])
-    with col1:
-        avg_friction = digital_data['Friction_Index_Score'].mean()
-        st.markdown(f"""
-        <div class="kpi-card amber">
-            <div class="metric-label">Avg Friction Index</div>
-            <div class="metric-value">{avg_friction:.1f}</div>
-            <div class="trend trend-negative">↓ -4.5</div>
-            <div class="status-pill status-amber">Improve</div>
-        </div>
-        """, unsafe_allow_html=True)
-    with col2:
-        avg_latency = digital_data['App_Response_Latency_Sec'].mean()
-        st.markdown(f"""
-        <div class="kpi-card amber">
-            <div class="metric-label">Avg Response Latency</div>
-            <div class="metric-value">{avg_latency:.2f}s</div>
-            <div class="trend trend-negative">↓ -0.3s</div>
-            <div class="status-pill status-amber">Monitor</div>
-        </div>
-        """, unsafe_allow_html=True)
-
-    # Combined: Friction by Dept and Latency
-    st.markdown("**Friction Index & Response Latency by Department**")
-    dept_friction = digital_data.groupby('Department').agg({
-        'Friction_Index_Score': 'mean',
-        'App_Response_Latency_Sec': 'mean'
-    }).sort_values('Friction_Index_Score', ascending=False)
-
-    fig = go.Figure()
-    fig.add_trace(go.Bar(
-        x=dept_friction.index,
-        y=dept_friction['Friction_Index_Score'],
-        name='Friction Score',
-        marker_color='#1e40af',
-        yaxis='y1'
-    ))
-    fig.add_trace(go.Scatter(
-        x=dept_friction.index,
-        y=dept_friction['App_Response_Latency_Sec'],
-        name='Response Latency (s)',
-        mode='lines+markers',
-        line=dict(color='#dc2626', width=3),
-        marker=dict(size=10),
-        yaxis='y2'
-    ))
-
-    fig.update_layout(
-        yaxis=dict(title='Friction Score', side='left'),
-        yaxis2=dict(title='Response Latency (s)', overlaying='y', side='right'),
-        height=400,
-        hovermode='x unified',
-        plot_bgcolor="rgba(0,0,0,0)"
-    )
-    st.plotly_chart(fig, use_container_width=True)
-
-    # Alert
-    worst = dept_friction.index[0]
-    friction_impact = (dept_friction.iloc[0]['Friction_Index_Score'] / 100) * 8 * 5 * 60
-    st.markdown(f"""
-    <div class="alert-box">
-        <strong>⚠️ Alert: High Friction in {worst}</strong><br>
-        Lost productivity: ~{friction_impact:.0f} hours/week | Recommend urgent system upgrades
-    </div>
-    """, unsafe_allow_html=True)
-
-    if st.checkbox("📊 Show department details", key="digital_details"):
-        show_detailed_data(
-            digital_data.groupby('Department').agg({
-                'Friction_Index_Score': 'mean',
-                'App_Response_Latency_Sec': 'mean',
-                'Tool_Switches_Per_Hour': 'mean'
-            }).reset_index().sort_values('Friction_Index_Score', ascending=False),
-            "Digital Index Details"
+        # Download selected sheet
+        selected_sheet = st.selectbox(
+            "Choose sheet to export:",
+            list(sheet_map.keys()),
+            index=0,
+            key="export_sheet_select"
         )
 
-    # Trend
-    digital_trend = data['Digital_Index'][data['Digital_Index']['Month'].isin(selected_months)].groupby('Month').agg({
-        'Friction_Index_Score': 'mean'
-    }).reset_index().sort_values('Month')
+        key_name = sheet_map[selected_sheet]
+        export_df = data[key_name].copy()
 
-    if len(digital_trend) > 1:
-        st.markdown("**Trend Over Time**")
-        fig = create_trend_chart(digital_trend, 'Month', 'Friction_Index_Score', 'Friction Index Trend', 'Score', '#f59e0b')
-        st.plotly_chart(fig, use_container_width=True)
+        # Filter
+        if 'Month' in export_df.columns:
+            export_df = export_df[export_df['Month'].isin(selected_months)]
+        if 'Department' in export_df.columns and dept_filter:
+            export_df = export_df[export_df['Department'].isin(dept_filter)]
 
-    st.divider()
-
-    # ===== Section 4: Process Rework Cost =====
-    st.markdown("#### ♻️ Process Rework Cost %")
-
-    col1, col2 = st.columns([1, 1])
-    with col1:
-        avg_rework_pct = rework_data['Rework_Cost_Percentage'].mean()
-        st.markdown(f"""
-        <div class="kpi-card {'red' if avg_rework_pct > 5 else 'amber' if avg_rework_pct > 3 else 'green'}">
-            <div class="metric-label">Avg Rework Cost %</div>
-            <div class="metric-value">{avg_rework_pct:.1f}%</div>
-            <div class="trend trend-negative">↑ +0.5%</div>
-            <div class="status-pill status-{'red' if avg_rework_pct > 5 else 'amber'}>Alert</div>
-        </div>
-        """, unsafe_allow_html=True)
-    with col2:
-        total_rework = rework_data['Rework_Cost_Dollars'].sum()
-        quarterly = total_rework * 3
-        st.markdown(f"""
-        <div class="kpi-card {'red' if quarterly > 30000 else 'amber'}">
-            <div class="metric-label">Monthly Rework Cost</div>
-            <div class="metric-value">${total_rework:,.0f}</div>
-            <div class="trend trend-negative">↑ +$2.5K</div>
-            <div class="status-pill status-red">Rising</div>
-        </div>
-        """, unsafe_allow_html=True)
-
-    # Combined: Rework % and Cost
-    st.markdown("**Rework Cost by Process: Percentage vs Dollar Impact**")
-    process_rework = rework_data.groupby('Process_Name').agg({
-        'Rework_Cost_Percentage': 'mean',
-        'Rework_Cost_Dollars': 'sum'
-    }).sort_values('Rework_Cost_Dollars', ascending=False).head(8)
-
-    fig = go.Figure()
-    fig.add_trace(go.Bar(
-        y=process_rework.index,
-        x=process_rework['Rework_Cost_Percentage'],
-        name='Rework %',
-        marker_color='#f59e0b',
-        orientation='h',
-        xaxis='x1'
-    ))
-    fig.add_trace(go.Scatter(
-        y=process_rework.index,
-        x=process_rework['Rework_Cost_Dollars'],
-        name='Rework Cost ($)',
-        mode='markers',
-        marker=dict(size=12, color='#dc2626'),
-        xaxis='x2'
-    ))
-
-    fig.update_layout(
-        xaxis=dict(title='Rework %'),
-        xaxis2=dict(title='Rework Cost ($)', overlaying='x', side='top'),
-        height=400,
-        hovermode='y unified',
-        plot_bgcolor="rgba(0,0,0,0)"
-    )
-    st.plotly_chart(fig, use_container_width=True)
-
-    # Opportunity
-    if len(process_rework) > 0:
-        worst_process = process_rework.index[0]
-        annual_cost = rework_data['Rework_Cost_Dollars'].sum() * 12
-        st.markdown(f"""
-        <div class="opportunity-box">
-            <strong>🎯 Opportunity: Process Improvement</strong><br>
-            Fix {worst_process} rework issues | Potential annual savings: ${annual_cost * 0.5:,.0f} (50% reduction)
-        </div>
-        """, unsafe_allow_html=True)
-
-        if st.checkbox("📊 Show process details", key="rework_details"):
-            show_detailed_data(
-                rework_data.groupby('Process_Name').agg({
-                    'Rework_Cost_Percentage': 'mean',
-                    'Rework_Cost_Dollars': 'sum',
-                    'Rework_Transaction_Count': 'sum'
-                }).reset_index().sort_values('Rework_Cost_Dollars', ascending=False),
-                "Rework Cost Details"
-            )
-
-    # Trend
-    rework_trend = data['Process_Rework'][data['Process_Rework']['Month'].isin(selected_months)].groupby('Month').agg({
-        'Rework_Cost_Percentage': 'mean'
-    }).reset_index().sort_values('Month')
-
-    if len(rework_trend) > 1:
-        st.markdown("**Trend Over Time**")
-        fig = create_trend_chart(rework_trend, 'Month', 'Rework_Cost_Percentage', 'Rework Cost Trend', 'Percentage (%)', '#dc2626')
-        st.plotly_chart(fig, use_container_width=True)
-
-# ==================== EXECUTION & RISK TAB ====================
-elif st.session_state.current_page == "Execution & Risk":
-    st.markdown("### ⚙️ Execution & Risk Management")
-
-    # Filter data
-    ftr_data = data['FTR_Rate'][data['FTR_Rate']['Month'].isin(selected_months)]
-    adherence_data = data['Adherence'][data['Adherence']['Month'].isin(selected_months)]
-    resilience_data = data['Resilience'][data['Resilience']['Month'].isin(selected_months)]
-    escalation_data = data['Escalation'][data['Escalation']['Month'].isin(selected_months)]
-
-    st.info(f"📊 Showing {len(ftr_data)} FTR records | {len(resilience_data)} Resilience records")
-
-    col1, col2, col3, col4 = st.columns(4)
-    with col1:
-        avg_res = resilience_data['Resilience_Score'].mean()
-        st.markdown(f"""
-        <div class="kpi-card {'amber' if avg_res < 7 else 'green'}">
-            <div class="metric-label">Resilience Score</div>
-            <div class="metric-value">{avg_res:.1f}/10</div>
-            <div class="trend trend-positive">↑ +0.4</div>
-            <div class="status-pill status-amber">Fair</div>
-        </div>
-        """, unsafe_allow_html=True)
-    with col2:
-        avg_ftr = ftr_data['FTR_Rate_Percentage'].mean()
-        st.markdown(f"""
-        <div class="kpi-card {'green' if avg_ftr > 85 else 'amber' if avg_ftr > 70 else 'red'}">
-            <div class="metric-label">FTR Rate</div>
-            <div class="metric-value">{avg_ftr:.1f}%</div>
-            <div class="trend trend-positive">↑ +1.8%</div>
-            <div class="status-pill status-{'green' if avg_ftr > 85 else 'amber'}">Improve</div>
-        </div>
-        """, unsafe_allow_html=True)
-    with col3:
-        avg_adh = adherence_data['Adherence_Rate_Percentage'].mean()
-        st.markdown(f"""
-        <div class="kpi-card {'amber' if avg_adh < 85 else 'green'}">
-            <div class="metric-label">Process Adherence</div>
-            <div class="metric-value">{avg_adh:.1f}%</div>
-            <div class="trend trend-negative">↓ -1.3%</div>
-            <div class="status-pill status-amber">Monitor</div>
-        </div>
-        """, unsafe_allow_html=True)
-    with col4:
-        total_esc = escalation_data['Step_Exception_Count'].sum()
-        st.markdown(f"""
-        <div class="kpi-card red">
-            <div class="metric-label">Total Escalations</div>
-            <div class="metric-value">{total_esc:.0f}</div>
-            <div class="trend trend-negative">↑ +9%</div>
-            <div class="status-pill status-red">Alert</div>
-        </div>
-        """, unsafe_allow_html=True)
-
-    st.divider()
-
-    # ===== Resilience Section =====
-    st.markdown("#### 🛡️ Operational Resilience Score")
-
-    res_summary = resilience_data.groupby('Critical_Task').agg({
-        'Resilience_Score': 'mean',
-        'Risk_Percentage': 'mean'
-    }).sort_values('Risk_Percentage', ascending=False).head(8)
-
-    st.markdown("**Critical Tasks: Risk vs Resilience Score**")
-    fig = go.Figure()
-    fig.add_trace(go.Bar(
-        y=res_summary.index,
-        x=res_summary['Risk_Percentage'],
-        name='Risk %',
-        marker_color='#dc2626',
-        orientation='h',
-        xaxis='x1'
-    ))
-    fig.add_trace(go.Scatter(
-        y=res_summary.index,
-        x=res_summary['Resilience_Score'],
-        name='Resilience Score',
-        mode='lines+markers',
-        line=dict(color='#059669', width=3),
-        marker=dict(size=10),
-        xaxis='x2'
-    ))
-
-    fig.update_layout(
-        xaxis=dict(title='Risk %'),
-        xaxis2=dict(title='Resilience Score', overlaying='x', side='top'),
-        height=400,
-        hovermode='y unified',
-        plot_bgcolor="rgba(0,0,0,0)"
-    )
-    st.plotly_chart(fig, use_container_width=True)
-
-    # Alert
-    highest_risk = resilience_data.loc[resilience_data['Risk_Percentage'].idxmax()]
-    critical_count = resilience_data[resilience_data['Risk_Level'] == 'Critical'].shape[0]
-    st.markdown(f"""
-    <div class="alert-box">
-        <strong>🔴 Critical: Single Points of Failure</strong><br>
-        {critical_count} tasks with single-person dependency | Cross-training can reduce risk by 60%
-    </div>
-    """, unsafe_allow_html=True)
-
-    if st.checkbox("📊 Show resilience details", key="resilience_details"):
-        show_detailed_data(
-            resilience_data[['Critical_Task', 'Department', 'Risk_Percentage', 'Risk_Level']].drop_duplicates().head(20),
-            "Resilience Details"
+        csv_export = export_df.to_csv(index=False)
+        st.download_button(
+            label=f"📥 Download {selected_sheet} (CSV)",
+            data=csv_export,
+            file_name=f"{key_name}.csv",
+            mime="text/csv",
+            key=f"dl_{key_name}"
         )
 
-    # Trend
-    res_trend = data['Resilience'][data['Resilience']['Month'].isin(selected_months)].groupby('Month').agg({
-        'Resilience_Score': 'mean'
-    }).reset_index().sort_values('Month')
-
-    if len(res_trend) > 1:
-        st.markdown("**Trend Over Time**")
-        fig = create_trend_chart(res_trend, 'Month', 'Resilience_Score', 'Resilience Score Trend', 'Score', '#0891b2')
-        st.plotly_chart(fig, use_container_width=True)
-
     st.divider()
 
-    # ===== FTR Section =====
-    st.markdown("#### ✅ First-Time-Right (FTR) Rate")
+    # Excel export for all sheets
+    st.markdown("**Export All Sheets as Excel**")
 
-    ftr_summary = ftr_data.groupby('Process').agg({
-        'FTR_Rate_Percentage': 'mean',
-        'Target_FTR_Rate': 'first',
-        'Error_Rate_Percentage': 'mean'
-    }).reset_index().sort_values('FTR_Rate_Percentage')
+    if st.button("⚙️ Prepare Excel Export (All Sheets)"):
+        st.info("💡 This will package all KPI sheets. Processing...")
 
-    st.markdown("**Process Quality: FTR vs Target vs Error Rate**")
-    fig = go.Figure()
-    fig.add_trace(go.Bar(y=ftr_summary['Process'], x=ftr_summary['FTR_Rate_Percentage'], name='Actual FTR %', marker_color='#3b82f6', orientation='h'))
-    fig.add_trace(go.Bar(y=ftr_summary['Process'], x=ftr_summary['Target_FTR_Rate'], name='Target FTR %', marker_color='#d1d5db', orientation='h'))
-    fig.add_trace(go.Scatter(y=ftr_summary['Process'], x=ftr_summary['Error_Rate_Percentage'], name='Error %', mode='markers', marker=dict(size=12, color='#dc2626')))
+        output = io.BytesIO()
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            for sheet_name, df in data.items():
+                filtered_df = df[df['Month'].isin(selected_months)] if 'Month' in df.columns else df
+                if 'Department' in filtered_df.columns and dept_filter:
+                    filtered_df = filtered_df[filtered_df['Department'].isin(dept_filter)]
+                filtered_df.to_excel(writer, sheet_name=sheet_name[:31], index=False)
 
-    fig.update_layout(
-        barmode='group',
-        height=400,
-        hovermode='y unified',
-        plot_bgcolor="rgba(0,0,0,0)"
-    )
-    st.plotly_chart(fig, use_container_width=True)
+        output.seek(0)
 
-    # Opportunity
-    gap = ftr_summary['Target_FTR_Rate'].mean() - ftr_summary['FTR_Rate_Percentage'].mean()
-    if gap > 5:
-        st.markdown(f"""
-        <div class="opportunity-box">
-            <strong>🎯 Opportunity: Quality Improvement</strong><br>
-            Close FTR gap of {gap:.0f} percentage points | Estimated cost savings: $125K annually
-        </div>
-        """, unsafe_allow_html=True)
-
-        if st.checkbox("📊 Show FTR details", key="ftr_details"):
-            show_detailed_data(
-                ftr_data[['Process', 'Department', 'FTR_Rate_Percentage', 'Error_Rate_Percentage', 'Target_FTR_Rate']].head(20),
-                "FTR Rate Details"
-            )
-
-    # Trend
-    ftr_trend = data['FTR_Rate'][data['FTR_Rate']['Month'].isin(selected_months)].groupby('Month').agg({
-        'FTR_Rate_Percentage': 'mean'
-    }).reset_index().sort_values('Month')
-
-    if len(ftr_trend) > 1:
-        st.markdown("**Trend Over Time**")
-        fig = create_trend_chart(ftr_trend, 'Month', 'FTR_Rate_Percentage', 'FTR Rate Trend', 'Percentage (%)', '#059669')
-        st.plotly_chart(fig, use_container_width=True)
-
-# ==================== WORKFORCE & MODEL TAB ====================
-elif st.session_state.current_page == "Workforce & Model":
-    st.markdown("### 👥 Workforce & Scalable Operating Model")
-
-    # Filter data
-    capacity_data = data['Capacity'][data['Capacity']['Month'].isin(selected_months)]
-    if dept_filter:
-        capacity_data = capacity_data[capacity_data['Department'].isin(dept_filter)]
-
-    model_acc_data = data['Model_Accuracy'][data['Model_Accuracy']['Month'].isin(selected_months)]
-    if dept_filter:
-        model_acc_data = model_acc_data[model_acc_data['Department'].isin(dept_filter)]
-
-    work_models_data = data['Work_Models'][data['Work_Models']['Month'].isin(selected_months)]
-    if dept_filter:
-        work_models_data = work_models_data[work_models_data['Department'].isin(dept_filter)]
-
-    collab_data = data['Collaboration'][data['Collaboration']['Month'].isin(selected_months)]
-    if dept_filter:
-        collab_data = collab_data[collab_data['Department'].isin(dept_filter)]
-
-    st.info(f"📊 Showing {len(capacity_data)} capacity records | {len(work_models_data)} work model records")
-
-    col1, col2, col3, col4 = st.columns(4)
-    with col1:
-        burnout_count = capacity_data[capacity_data['Burnout_Risk_Flag'] == 'Yes'].shape[0]
-        st.markdown(f"""
-        <div class="kpi-card {'red' if burnout_count > 15 else 'amber' if burnout_count > 8 else 'green'}">
-            <div class="metric-label">At-Risk Employees</div>
-            <div class="metric-value">{burnout_count}</div>
-            <div class="trend trend-negative">↑ +2</div>
-            <div class="status-pill status-{'red' if burnout_count > 15 else 'amber' if burnout_count > 8 else 'good'}">Critical</div>
-        </div>
-        """, unsafe_allow_html=True)
-    with col2:
-        avg_model = model_acc_data['Forecast_Accuracy_Percentage'].mean()
-        st.markdown(f"""
-        <div class="kpi-card amber">
-            <div class="metric-label">Model Accuracy</div>
-            <div class="metric-value">{avg_model:.0f}%</div>
-            <div class="trend trend-positive">↑ +3.2%</div>
-            <div class="status-pill status-amber">Improving</div>
-        </div>
-        """, unsafe_allow_html=True)
-    with col3:
-        remote_data = work_models_data[work_models_data['Work_Model'] == 'Remote']
-        if len(remote_data) > 0:
-            remote_out = remote_data['Output_Per_Hour'].mean()
-        else:
-            remote_out = 0
-        st.markdown(f"""
-        <div class="kpi-card green">
-            <div class="metric-label">Remote Output/Hr</div>
-            <div class="metric-value">{remote_out:.2f}</div>
-            <div class="trend trend-positive">↑ +0.4</div>
-            <div class="status-pill status-good">Good</div>
-        </div>
-        """, unsafe_allow_html=True)
-    with col4:
-        avg_collab = collab_data['Collaboration_Tools_Time_Hours'].mean()
-        st.markdown(f"""
-        <div class="kpi-card {'red' if avg_collab > 4 else 'amber' if avg_collab > 3 else 'green'}">
-            <div class="metric-label">Avg Collab Hours</div>
-            <div class="metric-value">{avg_collab:.1f} hrs</div>
-            <div class="trend trend-positive">↓ -0.2 hrs</div>
-            <div class="status-pill status-amber">High</div>
-        </div>
-        """, unsafe_allow_html=True)
-
-    st.divider()
-
-    # ===== Capacity Section =====
-    st.markdown("#### 🔥 Hidden Capacity & Burnout Risk")
-
-    cap_summary = capacity_data.groupby('Department').agg({
-        'Capacity_Utilization_Percentage': 'mean'
-    }).sort_values('Capacity_Utilization_Percentage')
-
-    st.markdown("**Department Capacity & Burnout Risk**")
-    fig = go.Figure()
-    fig.add_trace(go.Bar(
-        x=cap_summary.values,
-        y=cap_summary.index,
-        name='Capacity %',
-        marker_color=cap_summary.apply(lambda x: '#dc2626' if x > 110 else '#f59e0b' if x > 90 else '#059669').values,
-        orientation='h',
-        text=cap_summary.apply(lambda x: f"{x:.0f}%").values,
-        textposition='outside'
-    ))
-    fig.add_vline(x=100, line_dash="dash", line_color="red", annotation_text="Optimal Capacity")
-    fig.update_layout(height=400, showlegend=False, xaxis_title="Capacity %", plot_bgcolor="rgba(0,0,0,0)")
-    st.plotly_chart(fig, use_container_width=True)
-
-    # Alert
-    at_risk = capacity_data[capacity_data['Capacity_Utilization_Percentage'] > 110].shape[0]
-    if at_risk > 5:
-        st.markdown(f"""
-        <div class="alert-box">
-            <strong>🔴 Critical: Capacity Crisis</strong><br>
-            {at_risk} employees over capacity | Immediate staffing or workload rebalancing required
-        </div>
-        """, unsafe_allow_html=True)
-
-        if st.checkbox("📊 Show capacity details", key="capacity_details"):
-            show_detailed_data(
-                capacity_data[['Department', 'Role', 'Capacity_Utilization_Percentage', 'Burnout_Risk_Flag']].drop_duplicates().head(20),
-                "Capacity Details"
-            )
-
-    # Trend
-    cap_trend = data['Capacity'][data['Capacity']['Month'].isin(selected_months)].groupby('Month').agg({
-        'Capacity_Utilization_Percentage': 'mean'
-    }).reset_index().sort_values('Month')
-
-    if len(cap_trend) > 1:
-        st.markdown("**Trend Over Time**")
-        fig = create_trend_chart(cap_trend, 'Month', 'Capacity_Utilization_Percentage', 'Capacity Trend', 'Utilization %', '#f59e0b')
-        st.plotly_chart(fig, use_container_width=True)
-
-    st.divider()
-
-    # ===== Work Models Section =====
-    st.markdown("#### 💼 Work Models Effectiveness")
-
-    work_summary = work_models_data.groupby('Work_Model').agg({
-        'Output_Per_Hour': 'mean',
-        'Cost_Per_Transaction': 'mean'
-    }).reset_index()
-
-    st.markdown("**Work Model Comparison: Output vs Cost**")
-    fig = go.Figure()
-    fig.add_trace(go.Bar(
-        x=work_summary['Work_Model'],
-        y=work_summary['Output_Per_Hour'],
-        name='Output/Hr',
-        marker_color='#059669',
-        yaxis='y1'
-    ))
-    fig.add_trace(go.Scatter(
-        x=work_summary['Work_Model'],
-        y=work_summary['Cost_Per_Transaction'],
-        name='Cost/Transaction ($)',
-        mode='lines+markers',
-        line=dict(color='#dc2626', width=3),
-        marker=dict(size=10),
-        yaxis='y2'
-    ))
-
-    fig.update_layout(
-        yaxis=dict(title='Output/Hr', side='left'),
-        yaxis2=dict(title='Cost/Txn ($)', overlaying='y', side='right'),
-        height=400,
-        hovermode='x unified',
-        plot_bgcolor="rgba(0,0,0,0)"
-    )
-    st.plotly_chart(fig, use_container_width=True)
-
-    # Opportunity
-    best = work_summary.loc[work_summary['Output_Per_Hour'].idxmax()]
-    cost_savings = work_summary['Cost_Per_Transaction'].max() - work_summary['Cost_Per_Transaction'].min()
-    st.markdown(f"""
-    <div class="opportunity-box">
-        <strong>🎯 Opportunity: Work Model Optimization</strong><br>
-        Shift 30% of work to {best['Work_Model']} model | Annual savings: ${cost_savings * 50000:,.0f}
-    </div>
-    """, unsafe_allow_html=True)
-
-    if st.checkbox("📊 Show work model details", key="workmodel_details"):
-        show_detailed_data(
-            work_models_data.groupby('Work_Model').agg({
-                'Output_Per_Hour': 'mean',
-                'Cost_Per_Transaction': 'mean',
-                'Productivity_Index': 'mean'
-            }).reset_index(),
-            "Work Models Details"
+        st.download_button(
+            label="📥 Download All Sheets (Excel)",
+            data=output.getvalue(),
+            file_name="COO_Dashboard_All_KPIs.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            key="dl_all_excel"
         )
 
-    # Trend
-    work_trend = data['Work_Models'][data['Work_Models']['Month'].isin(selected_months)].groupby('Month').agg({
-        'Output_Per_Hour': 'mean'
-    }).reset_index().sort_values('Month')
+st.markdown("</div>", unsafe_allow_html=True)
 
-    if len(work_trend) > 1:
-        st.markdown("**Trend Over Time**")
-        fig = create_trend_chart(work_trend, 'Month', 'Output_Per_Hour', 'Productivity Trend', 'Output/Hr', '#059669')
-        st.plotly_chart(fig, use_container_width=True)
-
-# Footer
+# ==================== FOOTER ====================
 st.divider()
 st.markdown(f"""
-    <div style="text-align: center; padding: 20px; color: #6b7280; font-size: 12px;">
-        <strong>COO Dashboard v5.0 - Final</strong> | {len(selected_months)} months | {len(dept_filter) if dept_filter else len(all_departments)} departments | 
-        <strong>Source:</strong> COO_ROI_Dashboard_KPIs_Complete_12.xlsx
+    <div style="text-align: center; padding: 15px; color: #6b7280; font-size: 11px;">
+        <strong>COO Dashboard v6.0 - Hierarchical View</strong> | 
+        {len(selected_months)} months | {len(dept_filter) if dept_filter else len(all_departments)} departments | 
+        Updated: {datetime.now().strftime('%Y-%m-%d %H:%M')}
     </div>
 """, unsafe_allow_html=True)
