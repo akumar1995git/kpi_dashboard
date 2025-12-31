@@ -241,6 +241,17 @@ def create_gauge_chart(value, max_value, title, color='#1e40af'):
     fig.update_layout(height=250, margin=dict(l=0, r=0, t=30, b=0))
     return fig
 
+def render_kpi_card(icon, title, value, trend):
+    """Render a single KPI card using HTML"""
+    html = f"""
+    <div class="subobjective-box">
+        <div class="subobjective-title">{icon} {title}</div>
+        <div class="subobjective-value">{value}</div>
+        <div class="subobjective-trend">{trend}</div>
+    </div>
+    """
+    return html
+
 # ==================== HEADER ====================
 st.markdown("""
     <div style="background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%); 
@@ -273,37 +284,17 @@ if st.session_state.current_page == 'main':
             st.session_state.current_page = 'cost_efficiency'
             st.rerun()
         
-        # FIXED: Properly render HTML with unsafe_allow_html=True
-        html_content = f"""
+        # Render objective card with KPI boxes
+        card_html = f"""
         <div class="objective-card">
             <div class="objective-signal">Monitor: ROI + Rework + Automation Coverage</div>
-            
-            <div class="subobjective-box cost">
-                <div class="subobjective-title">📊 Rework Cost %</div>
-                <div class="subobjective-value">{rework_pct:.1f}%</div>
-                <div class="subobjective-trend">Monthly cost impact</div>
-            </div>
-            
-            <div class="subobjective-box efficiency">
-                <div class="subobjective-title">🤖 Automation ROI</div>
-                <div class="subobjective-value">{auto_roi:.0f}%</div>
-                <div class="subobjective-trend">6-month potential</div>
-            </div>
-            
-            <div class="subobjective-box efficiency">
-                <div class="subobjective-title">🔧 Automation Coverage</div>
-                <div class="subobjective-value">{automation_coverage:.0f}%</div>
-                <div class="subobjective-trend">Process automation</div>
-            </div>
-            
-            <div class="subobjective-box efficiency">
-                <div class="subobjective-title">📱 Digital Friction</div>
-                <div class="subobjective-value">{friction:.1f}</div>
-                <div class="subobjective-trend">Lower is better</div>
-            </div>
+            {render_kpi_card("📊", "Rework Cost %", f"{rework_pct:.1f}%", "Monthly cost impact")}
+            {render_kpi_card("🤖", "Automation ROI", f"{auto_roi:.0f}%", "6-month potential")}
+            {render_kpi_card("🔧", "Automation Coverage", f"{automation_coverage:.0f}%", "Process automation")}
+            {render_kpi_card("📱", "Digital Friction", f"{friction:.1f}", "Lower is better")}
         </div>
         """
-        st.markdown(html_content, unsafe_allow_html=True)
+        st.markdown(card_html, unsafe_allow_html=True)
     
     # -------- OBJECTIVE 2: EXECUTION & RESILIENCE --------
     with col2:
@@ -321,36 +312,16 @@ if st.session_state.current_page == 'main':
             st.session_state.current_page = 'execution_resilience'
             st.rerun()
         
-        html_content = f"""
+        card_html = f"""
         <div class="objective-card">
             <div class="objective-signal">Monitor: Quality + Reliability + Risk</div>
-            
-            <div class="subobjective-box quality">
-                <div class="subobjective-title">✅ FTR Rate</div>
-                <div class="subobjective-value">{ftr_rate:.1f}%</div>
-                <div class="subobjective-trend">First-time accuracy</div>
-            </div>
-            
-            <div class="subobjective-box quality">
-                <div class="subobjective-title">📋 Process Adherence</div>
-                <div class="subobjective-value">{adherence:.1f}%</div>
-                <div class="subobjective-trend">Policy compliance</div>
-            </div>
-            
-            <div class="subobjective-box quality">
-                <div class="subobjective-title">🛡️ Resilience Score</div>
-                <div class="subobjective-value">{resilience:.1f}/10</div>
-                <div class="subobjective-trend">Process robustness</div>
-            </div>
-            
-            <div class="subobjective-box cost">
-                <div class="subobjective-title">🚨 Escalations</div>
-                <div class="subobjective-value">{escalations:.0f}</div>
-                <div class="subobjective-trend">Exception volume</div>
-            </div>
+            {render_kpi_card("✅", "FTR Rate", f"{ftr_rate:.1f}%", "First-time accuracy")}
+            {render_kpi_card("📋", "Process Adherence", f"{adherence:.1f}%", "Policy compliance")}
+            {render_kpi_card("🛡️", "Resilience Score", f"{resilience:.1f}/10", "Process robustness")}
+            {render_kpi_card("🚨", "Escalations", f"{escalations:.0f}", "Exception volume")}
         </div>
         """
-        st.markdown(html_content, unsafe_allow_html=True)
+        st.markdown(card_html, unsafe_allow_html=True)
     
     # -------- OBJECTIVE 3: WORKFORCE & PRODUCTIVITY --------
     with col3:
@@ -367,36 +338,16 @@ if st.session_state.current_page == 'main':
             st.session_state.current_page = 'workforce_productivity'
             st.rerun()
         
-        html_content = f"""
+        card_html = f"""
         <div class="objective-card">
             <div class="objective-signal">Monitor: Output + Capacity + Health</div>
-            
-            <div class="subobjective-box efficiency">
-                <div class="subobjective-title">⚡ Output/FTE</div>
-                <div class="subobjective-value">{avg_output:.2f}</div>
-                <div class="subobjective-trend">Productivity per agent</div>
-            </div>
-            
-            <div class="subobjective-box efficiency">
-                <div class="subobjective-title">📊 Capacity Utilization</div>
-                <div class="subobjective-value">{avg_capacity:.0f}%</div>
-                <div class="subobjective-trend">Workload balance</div>
-            </div>
-            
-            <div class="subobjective-box cost">
-                <div class="subobjective-title">🔥 At-Risk Employees</div>
-                <div class="subobjective-value">{burnout_count}</div>
-                <div class="subobjective-trend">Burnout risk count</div>
-            </div>
-            
-            <div class="subobjective-box quality">
-                <div class="subobjective-title">🎯 Model Accuracy</div>
-                <div class="subobjective-value">{model_accuracy:.0f}%</div>
-                <div class="subobjective-trend">Forecast precision</div>
-            </div>
+            {render_kpi_card("⚡", "Output/FTE", f"{avg_output:.2f}", "Productivity per agent")}
+            {render_kpi_card("📊", "Capacity Utilization", f"{avg_capacity:.0f}%", "Workload balance")}
+            {render_kpi_card("🔥", "At-Risk Employees", f"{burnout_count}", "Burnout risk count")}
+            {render_kpi_card("🎯", "Model Accuracy", f"{model_accuracy:.0f}%", "Forecast precision")}
         </div>
         """
-        st.markdown(html_content, unsafe_allow_html=True)
+        st.markdown(card_html, unsafe_allow_html=True)
 
 # ==================== DETAIL PAGE 1: COST & EFFICIENCY ====================
 elif st.session_state.current_page == 'cost_efficiency':
@@ -426,13 +377,7 @@ elif st.session_state.current_page == 'cost_efficiency':
     with col1:
         st.markdown("**KPI Card**")
         rework_pct = rework_data['Rework_Cost_Percentage'].mean()
-        st.markdown(f"""
-        <div class="kpi-detail-card">
-            <div class="kpi-detail-label">Rework Cost %</div>
-            <div class="kpi-detail-value">{rework_pct:.1f}%</div>
-            <div class="kpi-detail-trend">↓ -0.3% from last month</div>
-        </div>
-        """, unsafe_allow_html=True)
+        st.metric(label="Rework Cost %", value=f"{rework_pct:.1f}%", delta="-0.3%")
     
     with col2:
         st.markdown("**Monthly Trend**")
@@ -468,13 +413,7 @@ elif st.session_state.current_page == 'cost_efficiency':
     with col1:
         st.markdown("**KPI Card**")
         auto_roi = auto_data['ROI_Percentage_6M'].mean()
-        st.markdown(f"""
-        <div class="kpi-detail-card">
-            <div class="kpi-detail-label">Automation ROI</div>
-            <div class="kpi-detail-value">{auto_roi:.0f}%</div>
-            <div class="kpi-detail-trend">↑ +45% improvement</div>
-        </div>
-        """, unsafe_allow_html=True)
+        st.metric(label="Automation ROI", value=f"{auto_roi:.0f}%", delta="+45%")
     
     with col2:
         st.markdown("**ROI Trend**")
@@ -638,13 +577,7 @@ elif st.session_state.current_page == 'execution_resilience':
     with col1:
         st.markdown("**KPI Card**")
         ftr_rate = ftr_data['FTR_Rate_Percentage'].mean()
-        st.markdown(f"""
-        <div class="kpi-detail-card">
-            <div class="kpi-detail-label">FTR Rate</div>
-            <div class="kpi-detail-value">{ftr_rate:.1f}%</div>
-            <div class="kpi-detail-trend">↑ +2.1% improvement</div>
-        </div>
-        """, unsafe_allow_html=True)
+        st.metric(label="FTR Rate", value=f"{ftr_rate:.1f}%", delta="+2.1%")
     
     with col2:
         st.markdown("**Trend Over Time**")
@@ -717,13 +650,7 @@ elif st.session_state.current_page == 'execution_resilience':
     with col1:
         st.markdown("**KPI Card**")
         adherence = adherence_data['Adherence_Rate_Percentage'].mean()
-        st.markdown(f"""
-        <div class="kpi-detail-card">
-            <div class="kpi-detail-label">Adherence Rate</div>
-            <div class="kpi-detail-value">{adherence:.1f}%</div>
-            <div class="kpi-detail-trend">↓ -1.2% variance</div>
-        </div>
-        """, unsafe_allow_html=True)
+        st.metric(label="Adherence Rate", value=f"{adherence:.1f}%", delta="-1.2%")
     
     with col2:
         st.markdown("**By Department**")
@@ -759,13 +686,7 @@ elif st.session_state.current_page == 'execution_resilience':
     with col1:
         st.markdown("**Total Escalations**")
         escalations = escalation_data['Step_Exception_Count'].sum()
-        st.markdown(f"""
-        <div class="kpi-detail-card">
-            <div class="kpi-detail-label">Escalations</div>
-            <div class="kpi-detail-value">{escalations:.0f}</div>
-            <div class="kpi-detail-trend">↑ +8% increase</div>
-        </div>
-        """, unsafe_allow_html=True)
+        st.metric(label="Escalations", value=f"{escalations:.0f}", delta="+8%")
     
     with col2:
         st.markdown("**By Process**")
@@ -843,13 +764,7 @@ elif st.session_state.current_page == 'workforce_productivity':
     with col1:
         st.markdown("**KPI Card**")
         avg_output = work_data['Output_Per_Hour'].mean()
-        st.markdown(f"""
-        <div class="kpi-detail-card">
-            <div class="kpi-detail-label">Output/FTE</div>
-            <div class="kpi-detail-value">{avg_output:.2f}</div>
-            <div class="kpi-detail-trend">↑ +0.3 units</div>
-        </div>
-        """, unsafe_allow_html=True)
+        st.metric(label="Output/FTE", value=f"{avg_output:.2f}", delta="+0.3")
     
     with col2:
         st.markdown("**By Work Model**")
@@ -923,13 +838,7 @@ elif st.session_state.current_page == 'workforce_productivity':
     with col1:
         st.markdown("**KPI Card**")
         model_accuracy = model_data['Forecast_Accuracy_Percentage'].mean()
-        st.markdown(f"""
-        <div class="kpi-detail-card">
-            <div class="kpi-detail-label">Model Accuracy</div>
-            <div class="kpi-detail-value">{model_accuracy:.0f}%</div>
-            <div class="kpi-detail-trend">↑ +3.2% precision</div>
-        </div>
-        """, unsafe_allow_html=True)
+        st.metric(label="Model Accuracy", value=f"{model_accuracy:.0f}%", delta="+3.2%")
     
     with col2:
         st.markdown("**By Department**")
@@ -965,13 +874,7 @@ elif st.session_state.current_page == 'workforce_productivity':
     with col1:
         st.markdown("**At-Risk Count**")
         burnout_count = capacity_data[capacity_data['Burnout_Risk_Flag'] == 'Yes'].shape[0]
-        st.markdown(f"""
-        <div class="kpi-detail-card">
-            <div class="kpi-detail-label">At-Risk Employees</div>
-            <div class="kpi-detail-value">{burnout_count}</div>
-            <div class="kpi-detail-trend">↑ +2 increase</div>
-        </div>
-        """, unsafe_allow_html=True)
+        st.metric(label="At-Risk Employees", value=f"{burnout_count}", delta="+2")
     
     with col2:
         st.markdown("**By Department**")
@@ -1026,7 +929,7 @@ elif st.session_state.current_page == 'workforce_productivity':
 st.divider()
 st.markdown(f"""
     <div style="text-align: center; padding: 15px; color: #6b7280; font-size: 11px;">
-        <strong>COO Dashboard v8.0 - Complete Visualization System</strong> | 
+        <strong>COO Dashboard v9.0 - Complete Visualization System</strong> | 
         {len(selected_months)} months | {len(dept_filter) if dept_filter else len(all_departments)} departments | 
         Updated: {datetime.now().strftime('%Y-%m-%d %H:%M')}
     </div>
