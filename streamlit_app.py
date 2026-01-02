@@ -60,11 +60,18 @@ st.markdown("""
         padding: 12px;
         border-radius: 6px;
         margin-bottom: 10px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
     }
 
     .subobjective-box.cost { border-left-color: #ef4444; }
     .subobjective-box.quality { border-left-color: #059669; }
     .subobjective-box.efficiency { border-left-color: #f59e0b; }
+
+    .subobjective-info {
+        flex-grow: 1;
+    }
 
     .subobjective-title {
         font-size: 12px;
@@ -84,9 +91,16 @@ st.markdown("""
         color: #6b7280;
     }
 
+    .subobjective-chart {
+        width: 80px;
+        height: 40px;
+        flex-shrink: 0;
+    }
+
     /* Trend indicator */
     .trend-up { color: #059669; font-weight: 600; }
     .trend-down { color: #ef4444; font-weight: 600; }
+    .trend-neutral { color: #6b7280; font-weight: 600; }
 
     /* Detail Section */
     .detail-section {
@@ -155,7 +169,7 @@ def load_excel_data():
         }
         return data
     except FileNotFoundError:
-        st.error("❌ File not found: 'COO_ROI_Dashboard_KPIs_Complete_12.xlsx'")
+        st.error("File not found: 'COO_ROI_Dashboard_KPIs_Complete_12.xlsx'")
         st.stop()
 
 data = load_excel_data()
@@ -165,7 +179,7 @@ if 'current_page' not in st.session_state:
     st.session_state.current_page = 'main'
 
 # ==================== SIDEBAR FILTERS ====================
-st.sidebar.markdown("## 🔧 Filters")
+st.sidebar.markdown("## Filters")
 
 role_months = sorted(data['Role_vs_Reality']['Month'].unique())
 selected_months = st.sidebar.multiselect(
@@ -221,6 +235,33 @@ def create_trend_chart(df, x_col, y_col, title, color='#1e40af'):
     )
     return fig
 
+def create_mini_chart(df, x_col, y_col, color='#1e40af'):
+    """Create a mini sparkline chart"""
+    if len(df) < 2:
+        return None
+    
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(
+        x=df[x_col],
+        y=df[y_col],
+        mode='lines',
+        line=dict(color=color, width=2),
+        fill='tozeroy',
+        fillcolor=f'rgba({int(color[1:3], 16)}, {int(color[3:5], 16)}, {int(color[5:7], 16)}, 0.1)',
+        hoverinfo='none'
+    ))
+    fig.update_layout(
+        title=None,
+        height=40,
+        margin=dict(l=0, r=0, t=0, b=0),
+        showlegend=False,
+        plot_bgcolor="rgba(0,0,0,0)",
+        xaxis=dict(showticklabels=False, showgrid=False),
+        yaxis=dict(showticklabels=False, showgrid=False),
+        hovermode=False
+    )
+    return fig
+
 def create_gauge_chart(value, max_value, title, color='#1e40af'):
     """Create a gauge chart"""
     fig = go.Figure(data=[go.Indicator(
@@ -241,13 +282,36 @@ def create_gauge_chart(value, max_value, title, color='#1e40af'):
     fig.update_layout(height=250, margin=dict(l=0, r=0, t=30, b=0))
     return fig
 
-def render_kpi_card(icon, title, value, trend):
-    """Render a single KPI card using HTML"""
+def get_month_over_month_change(df, metric_col, month_col='Month'):
+    """Calculate month-over-month change"""
+    if len(df) < 2:
+        return None, None
+    
+    df_sorted = df.sort_values(month_col)
+    if len(df_sorted) < 2:
+        return None, None
+    
+    last_value = df_sorted[metric_col].iloc[-1]
+    prev_value = df_sorted[metric_col].iloc[-2]
+    
+    if prev_value == 0:
+        change = 0
+    else:
+        change = ((last_value - prev_value) / abs(prev_value)) * 100
+    
+    return last_value, change
+
+def render_kpi_card_with_chart(icon, title, value, trend, mini_fig):
+    """Render a KPI card with mini chart"""
+    trend_class = 'trend-up' if float(trend.split()[0]) >= 0 else 'trend-down'
+    
     html = f"""
     <div class="subobjective-box">
-        <div class="subobjective-title">{icon} {title}</div>
-        <div class="subobjective-value">{value}</div>
-        <div class="subobjective-trend">{trend}</div>
+        <div class="subobjective-info">
+            <div class="subobjective-title">{title}</div>
+            <div class="subobjective-value">{value}</div>
+            <div class="subobjective-trend"><span class="{trend_class}">{trend}</span></div>
+        </div>
     </div>
     """
     return html
@@ -257,14 +321,14 @@ st.markdown("""
     <div style="background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%); 
                 color: white; padding: 30px 20px; border-radius: 0; 
                 margin: -25px -20px 25px -20px; text-align: center;">
-        <h1 style="margin: 0; font-size: 36px;">📊 COO Operational Dashboard</h1>
+        <h1 style="margin: 0; font-size: 36px;">COO Operational Dashboard</h1>
         <p style="margin: 8px 0 0 0; opacity: 0.9; font-size: 14px;">Executive KPI Management with Visual Analytics</p>
     </div>
 """, unsafe_allow_html=True)
 
 # ==================== MAIN PAGE (L1) ====================
 if st.session_state.current_page == 'main':
-    st.markdown("### 🎯 Key Objectives (Click to Explore)")
+    st.markdown("### Key Objectives")
     
     col1, col2, col3 = st.columns(3, gap="medium")
     
@@ -280,21 +344,61 @@ if st.session_state.current_page == 'main':
         automation_coverage = (auto_data.shape[0] / max(data['Automation_ROI'].shape[0], 1)) * 100
         friction = digital_data['Friction_Index_Score'].mean() if len(digital_data) > 0 else 0
         
-        if st.button("💰 Cost & Efficiency", key="btn_cost", use_container_width=True, help="ROI, Rework, Automation, Digital Readiness"):
+        # Calculate MoM changes
+        rework_val, rework_change = get_month_over_month_change(rework_data, 'Rework_Cost_Percentage')
+        auto_val, auto_change = get_month_over_month_change(auto_data, 'ROI_Percentage_6M')
+        friction_val, friction_change = get_month_over_month_change(digital_data, 'Friction_Index_Score')
+        
+        rework_trend = f"{rework_change:+.1f}% vs last month" if rework_change is not None else "No data"
+        auto_trend = f"{auto_change:+.1f}% vs last month" if auto_change is not None else "No data"
+        friction_trend = f"{friction_change:+.1f}% vs last month" if friction_change is not None else "No data"
+        
+        if st.button("Cost & Efficiency", key="btn_cost", use_container_width=True, help="ROI, Rework, Automation, Digital Readiness"):
             st.session_state.current_page = 'cost_efficiency'
             st.rerun()
         
-        # Render objective card with KPI boxes
         card_html = f"""
         <div class="objective-card">
             <div class="objective-signal">Monitor: ROI + Rework + Automation Coverage</div>
-            {render_kpi_card("📊", "Rework Cost %", f"{rework_pct:.1f}%", "Monthly cost impact")}
-            {render_kpi_card("🤖", "Automation ROI", f"{auto_roi:.0f}%", "6-month potential")}
-            {render_kpi_card("🔧", "Automation Coverage", f"{automation_coverage:.0f}%", "Process automation")}
-            {render_kpi_card("📱", "Digital Friction", f"{friction:.1f}", "Lower is better")}
+            <div class="subobjective-box cost">
+                <div class="subobjective-info">
+                    <div class="subobjective-title">Rework Cost %</div>
+                    <div class="subobjective-value">{rework_pct:.1f}%</div>
+                    <div class="subobjective-trend"><span class="trend-down">{rework_trend}</span></div>
+                </div>
+            </div>
+            <div class="subobjective-box efficiency">
+                <div class="subobjective-info">
+                    <div class="subobjective-title">Automation ROI</div>
+                    <div class="subobjective-value">{auto_roi:.0f}%</div>
+                    <div class="subobjective-trend"><span class="trend-up">{auto_trend}</span></div>
+                </div>
+            </div>
+            <div class="subobjective-box efficiency">
+                <div class="subobjective-info">
+                    <div class="subobjective-title">Automation Coverage</div>
+                    <div class="subobjective-value">{automation_coverage:.0f}%</div>
+                    <div class="subobjective-trend">Process automation</div>
+                </div>
+            </div>
+            <div class="subobjective-box efficiency">
+                <div class="subobjective-info">
+                    <div class="subobjective-title">Digital Friction Index</div>
+                    <div class="subobjective-value">{friction:.1f}</div>
+                    <div class="subobjective-trend"><span class="trend-down">{friction_trend}</span></div>
+                </div>
+            </div>
         </div>
         """
         st.markdown(card_html, unsafe_allow_html=True)
+        
+        # Add mini charts
+        if len(rework_data) > 1:
+            rework_trend_data = rework_data.groupby('Month').agg({
+                'Rework_Cost_Percentage': 'mean'
+            }).reset_index().sort_values('Month')
+            fig = create_mini_chart(rework_trend_data, 'Month', 'Rework_Cost_Percentage', '#ef4444')
+            st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
     
     # -------- OBJECTIVE 2: EXECUTION & RESILIENCE --------
     with col2:
@@ -308,20 +412,61 @@ if st.session_state.current_page == 'main':
         resilience = resilience_data['Resilience_Score'].mean() if len(resilience_data) > 0 else 0
         escalations = escalation_data['Step_Exception_Count'].sum() if len(escalation_data) > 0 else 0
         
-        if st.button("⚙️ Execution & Resilience", key="btn_execution", use_container_width=True, help="FTR, Adherence, Resilience, Exceptions"):
+        # Calculate MoM changes
+        ftr_val, ftr_change = get_month_over_month_change(ftr_data, 'FTR_Rate_Percentage')
+        adh_val, adh_change = get_month_over_month_change(adherence_data, 'Adherence_Rate_Percentage')
+        res_val, res_change = get_month_over_month_change(resilience_data, 'Resilience_Score')
+        
+        ftr_trend = f"{ftr_change:+.1f}% vs last month" if ftr_change is not None else "No data"
+        adh_trend = f"{adh_change:+.1f}% vs last month" if adh_change is not None else "No data"
+        res_trend = f"{res_change:+.1f}% vs last month" if res_change is not None else "No data"
+        
+        if st.button("Execution & Resilience", key="btn_execution", use_container_width=True, help="FTR, Adherence, Resilience, Exceptions"):
             st.session_state.current_page = 'execution_resilience'
             st.rerun()
         
         card_html = f"""
         <div class="objective-card">
             <div class="objective-signal">Monitor: Quality + Reliability + Risk</div>
-            {render_kpi_card("✅", "FTR Rate", f"{ftr_rate:.1f}%", "First-time accuracy")}
-            {render_kpi_card("📋", "Process Adherence", f"{adherence:.1f}%", "Policy compliance")}
-            {render_kpi_card("🛡️", "Resilience Score", f"{resilience:.1f}/10", "Process robustness")}
-            {render_kpi_card("🚨", "Escalations", f"{escalations:.0f}", "Exception volume")}
+            <div class="subobjective-box quality">
+                <div class="subobjective-info">
+                    <div class="subobjective-title">FTR Rate</div>
+                    <div class="subobjective-value">{ftr_rate:.1f}%</div>
+                    <div class="subobjective-trend"><span class="trend-up">{ftr_trend}</span></div>
+                </div>
+            </div>
+            <div class="subobjective-box quality">
+                <div class="subobjective-info">
+                    <div class="subobjective-title">Process Adherence</div>
+                    <div class="subobjective-value">{adherence:.1f}%</div>
+                    <div class="subobjective-trend"><span class="trend-up">{adh_trend}</span></div>
+                </div>
+            </div>
+            <div class="subobjective-box quality">
+                <div class="subobjective-info">
+                    <div class="subobjective-title">Resilience Score</div>
+                    <div class="subobjective-value">{resilience:.1f}/10</div>
+                    <div class="subobjective-trend"><span class="trend-up">{res_trend}</span></div>
+                </div>
+            </div>
+            <div class="subobjective-box cost">
+                <div class="subobjective-info">
+                    <div class="subobjective-title">Escalations</div>
+                    <div class="subobjective-value">{escalations:.0f}</div>
+                    <div class="subobjective-trend">Exception volume</div>
+                </div>
+            </div>
         </div>
         """
         st.markdown(card_html, unsafe_allow_html=True)
+        
+        # Add mini chart
+        if len(ftr_data) > 1:
+            ftr_trend_data = ftr_data.groupby('Month').agg({
+                'FTR_Rate_Percentage': 'mean'
+            }).reset_index().sort_values('Month')
+            fig = create_mini_chart(ftr_trend_data, 'Month', 'FTR_Rate_Percentage', '#059669')
+            st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
     
     # -------- OBJECTIVE 3: WORKFORCE & PRODUCTIVITY --------
     with col3:
@@ -334,30 +479,71 @@ if st.session_state.current_page == 'main':
         burnout_count = capacity_data[capacity_data['Burnout_Risk_Flag'] == 'Yes'].shape[0]
         model_accuracy = model_data['Forecast_Accuracy_Percentage'].mean() if len(model_data) > 0 else 0
         
-        if st.button("👥 Workforce & Productivity", key="btn_workforce", use_container_width=True, help="Output, Capacity, Health, Model Accuracy"):
+        # Calculate MoM changes
+        cap_val, cap_change = get_month_over_month_change(capacity_data, 'Capacity_Utilization_Percentage')
+        out_val, out_change = get_month_over_month_change(work_data, 'Output_Per_Hour')
+        model_val, model_change = get_month_over_month_change(model_data, 'Forecast_Accuracy_Percentage')
+        
+        cap_trend = f"{cap_change:+.1f}% vs last month" if cap_change is not None else "No data"
+        out_trend = f"{out_change:+.1f}% vs last month" if out_change is not None else "No data"
+        model_trend = f"{model_change:+.1f}% vs last month" if model_change is not None else "No data"
+        
+        if st.button("Workforce & Productivity", key="btn_workforce", use_container_width=True, help="Output, Capacity, Health, Model Accuracy"):
             st.session_state.current_page = 'workforce_productivity'
             st.rerun()
         
         card_html = f"""
         <div class="objective-card">
             <div class="objective-signal">Monitor: Output + Capacity + Health</div>
-            {render_kpi_card("⚡", "Output/FTE", f"{avg_output:.2f}", "Productivity per agent")}
-            {render_kpi_card("📊", "Capacity Utilization", f"{avg_capacity:.0f}%", "Workload balance")}
-            {render_kpi_card("🔥", "At-Risk Employees", f"{burnout_count}", "Burnout risk count")}
-            {render_kpi_card("🎯", "Model Accuracy", f"{model_accuracy:.0f}%", "Forecast precision")}
+            <div class="subobjective-box efficiency">
+                <div class="subobjective-info">
+                    <div class="subobjective-title">Output/FTE</div>
+                    <div class="subobjective-value">{avg_output:.2f}</div>
+                    <div class="subobjective-trend"><span class="trend-up">{out_trend}</span></div>
+                </div>
+            </div>
+            <div class="subobjective-box efficiency">
+                <div class="subobjective-info">
+                    <div class="subobjective-title">Capacity Utilization</div>
+                    <div class="subobjective-value">{avg_capacity:.0f}%</div>
+                    <div class="subobjective-trend"><span class="trend-down">{cap_trend}</span></div>
+                </div>
+            </div>
+            <div class="subobjective-box cost">
+                <div class="subobjective-info">
+                    <div class="subobjective-title">At-Risk Employees</div>
+                    <div class="subobjective-value">{burnout_count}</div>
+                    <div class="subobjective-trend">Burnout risk count</div>
+                </div>
+            </div>
+            <div class="subobjective-box quality">
+                <div class="subobjective-info">
+                    <div class="subobjective-title">Model Accuracy</div>
+                    <div class="subobjective-value">{model_accuracy:.0f}%</div>
+                    <div class="subobjective-trend"><span class="trend-up">{model_trend}</span></div>
+                </div>
+            </div>
         </div>
         """
         st.markdown(card_html, unsafe_allow_html=True)
+        
+        # Add mini chart
+        if len(work_data) > 1:
+            work_trend_data = work_data.groupby('Month').agg({
+                'Output_Per_Hour': 'mean'
+            }).reset_index().sort_values('Month')
+            fig = create_mini_chart(work_trend_data, 'Month', 'Output_Per_Hour', '#059669')
+            st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
 
 # ==================== DETAIL PAGE 1: COST & EFFICIENCY ====================
 elif st.session_state.current_page == 'cost_efficiency':
     col1, col2 = st.columns([1, 6])
     with col1:
-        if st.button("← Back", key="back_cost"):
+        if st.button("Back", key="back_cost"):
             st.session_state.current_page = 'main'
             st.rerun()
     with col2:
-        st.markdown("### 💰 Cost & Efficiency - Deep Dive (L2)")
+        st.markdown("### Cost & Efficiency - Deep Dive")
     
     st.markdown("---")
     
@@ -367,11 +553,10 @@ elif st.session_state.current_page == 'cost_efficiency':
     role_data = filter_data(data['Role_vs_Reality'])
     work_data = filter_data(data['Work_Models'])
     
-    # L2: Detailed charts in 4 sections
-    st.markdown("#### 📊 L2: Detailed Metrics with Trends & Analysis")
+    st.markdown("#### Detailed Metrics with Trends & Analysis")
     
     # ROW 1: Rework Cost Analysis
-    st.markdown("**1. Rework Cost Analysis**")
+    st.markdown("**Rework Cost Analysis**")
     col1, col2, col3 = st.columns([1, 1, 1])
     
     with col1:
@@ -407,7 +592,7 @@ elif st.session_state.current_page == 'cost_efficiency':
     st.divider()
     
     # ROW 2: Automation ROI Analysis
-    st.markdown("**2. Automation ROI Potential**")
+    st.markdown("**Automation ROI Potential**")
     col1, col2, col3 = st.columns([1, 1, 1])
     
     with col1:
@@ -441,7 +626,7 @@ elif st.session_state.current_page == 'cost_efficiency':
     st.divider()
     
     # ROW 3: Digital Workplace Index
-    st.markdown("**3. Digital Workplace Friction Index**")
+    st.markdown("**Digital Workplace Friction Index**")
     col1, col2, col3 = st.columns([1, 1, 1])
     
     with col1:
@@ -478,7 +663,7 @@ elif st.session_state.current_page == 'cost_efficiency':
     st.divider()
     
     # ROW 4: Work Model & Role Analysis
-    st.markdown("**4. Work Model Effectiveness & Low-Value Work**")
+    st.markdown("**Work Model Effectiveness & Low-Value Work**")
     col1, col2, col3 = st.columns([1, 1, 1])
     
     with col1:
@@ -522,44 +707,44 @@ elif st.session_state.current_page == 'cost_efficiency':
             st.plotly_chart(fig, use_container_width=True)
     
     st.markdown("---")
-    st.markdown("#### 📋 L3: Detailed Data & Export")
+    st.markdown("#### Detailed Data & Export")
     
     tabs = st.tabs(["Rework Cost", "Automation ROI", "Digital Index", "Work Models", "Role Analysis"])
     
     with tabs[0]:
         st.dataframe(rework_data.head(100), use_container_width=True, hide_index=True)
         csv = rework_data.to_csv(index=False)
-        st.download_button("📥 Download Rework Data (CSV)", data=csv, file_name="rework_data.csv", mime="text/csv", key="dl_rework")
+        st.download_button("Download Rework Data (CSV)", data=csv, file_name="rework_data.csv", mime="text/csv", key="dl_rework")
     
     with tabs[1]:
         st.dataframe(auto_data.head(100), use_container_width=True, hide_index=True)
         csv = auto_data.to_csv(index=False)
-        st.download_button("📥 Download Automation Data (CSV)", data=csv, file_name="automation_data.csv", mime="text/csv", key="dl_auto")
+        st.download_button("Download Automation Data (CSV)", data=csv, file_name="automation_data.csv", mime="text/csv", key="dl_auto")
     
     with tabs[2]:
         st.dataframe(digital_data.head(100), use_container_width=True, hide_index=True)
         csv = digital_data.to_csv(index=False)
-        st.download_button("📥 Download Digital Index (CSV)", data=csv, file_name="digital_index.csv", mime="text/csv", key="dl_digital")
+        st.download_button("Download Digital Index (CSV)", data=csv, file_name="digital_index.csv", mime="text/csv", key="dl_digital")
     
     with tabs[3]:
         st.dataframe(work_data.head(100), use_container_width=True, hide_index=True)
         csv = work_data.to_csv(index=False)
-        st.download_button("📥 Download Work Models (CSV)", data=csv, file_name="work_models.csv", mime="text/csv", key="dl_work")
+        st.download_button("Download Work Models (CSV)", data=csv, file_name="work_models.csv", mime="text/csv", key="dl_work")
     
     with tabs[4]:
         st.dataframe(role_data.head(100), use_container_width=True, hide_index=True)
         csv = role_data.to_csv(index=False)
-        st.download_button("📥 Download Role Analysis (CSV)", data=csv, file_name="role_analysis.csv", mime="text/csv", key="dl_role")
+        st.download_button("Download Role Analysis (CSV)", data=csv, file_name="role_analysis.csv", mime="text/csv", key="dl_role")
 
 # ==================== DETAIL PAGE 2: EXECUTION & RESILIENCE ====================
 elif st.session_state.current_page == 'execution_resilience':
     col1, col2 = st.columns([1, 6])
     with col1:
-        if st.button("← Back", key="back_exec"):
+        if st.button("Back", key="back_exec"):
             st.session_state.current_page = 'main'
             st.rerun()
     with col2:
-        st.markdown("### ⚙️ Execution & Resilience - Deep Dive (L2)")
+        st.markdown("### Execution & Resilience - Deep Dive")
     
     st.markdown("---")
     
@@ -568,10 +753,10 @@ elif st.session_state.current_page == 'execution_resilience':
     resilience_data = filter_data(data['Resilience'])
     escalation_data = filter_data(data['Escalation'])
     
-    st.markdown("#### 📊 L2: Detailed Metrics with Trends & Analysis")
+    st.markdown("#### Detailed Metrics with Trends & Analysis")
     
     # ROW 1: FTR Rate
-    st.markdown("**1. First-Time-Right (FTR) Rate**")
+    st.markdown("**First-Time-Right (FTR) Rate**")
     col1, col2, col3 = st.columns([1, 1, 1])
     
     with col1:
@@ -607,7 +792,7 @@ elif st.session_state.current_page == 'execution_resilience':
     st.divider()
     
     # ROW 2: Resilience Score
-    st.markdown("**2. Operational Resilience Score**")
+    st.markdown("**Operational Resilience Score**")
     col1, col2, col3 = st.columns([1, 1, 1])
     
     with col1:
@@ -644,7 +829,7 @@ elif st.session_state.current_page == 'execution_resilience':
     st.divider()
     
     # ROW 3: Process Adherence
-    st.markdown("**3. Process Adherence Rate**")
+    st.markdown("**Process Adherence Rate**")
     col1, col2, col3 = st.columns([1, 1, 1])
     
     with col1:
@@ -680,7 +865,7 @@ elif st.session_state.current_page == 'execution_resilience':
     st.divider()
     
     # ROW 4: Escalations
-    st.markdown("**4. Escalation & Exception Patterns**")
+    st.markdown("**Escalation & Exception Patterns**")
     col1, col2, col3 = st.columns([1, 1, 1])
     
     with col1:
@@ -714,39 +899,39 @@ elif st.session_state.current_page == 'execution_resilience':
                 st.plotly_chart(fig, use_container_width=True)
     
     st.markdown("---")
-    st.markdown("#### 📋 L3: Detailed Data & Export")
+    st.markdown("#### Detailed Data & Export")
     
     tabs = st.tabs(["FTR Rate", "Adherence", "Resilience", "Escalations"])
     
     with tabs[0]:
         st.dataframe(ftr_data.head(100), use_container_width=True, hide_index=True)
         csv = ftr_data.to_csv(index=False)
-        st.download_button("📥 Download FTR Data (CSV)", data=csv, file_name="ftr_data.csv", mime="text/csv", key="dl_ftr")
+        st.download_button("Download FTR Data (CSV)", data=csv, file_name="ftr_data.csv", mime="text/csv", key="dl_ftr")
     
     with tabs[1]:
         st.dataframe(adherence_data.head(100), use_container_width=True, hide_index=True)
         csv = adherence_data.to_csv(index=False)
-        st.download_button("📥 Download Adherence Data (CSV)", data=csv, file_name="adherence_data.csv", mime="text/csv", key="dl_adherence")
+        st.download_button("Download Adherence Data (CSV)", data=csv, file_name="adherence_data.csv", mime="text/csv", key="dl_adherence")
     
     with tabs[2]:
         st.dataframe(resilience_data.head(100), use_container_width=True, hide_index=True)
         csv = resilience_data.to_csv(index=False)
-        st.download_button("📥 Download Resilience Data (CSV)", data=csv, file_name="resilience_data.csv", mime="text/csv", key="dl_resilience")
+        st.download_button("Download Resilience Data (CSV)", data=csv, file_name="resilience_data.csv", mime="text/csv", key="dl_resilience")
     
     with tabs[3]:
         st.dataframe(escalation_data.head(100), use_container_width=True, hide_index=True)
         csv = escalation_data.to_csv(index=False)
-        st.download_button("📥 Download Escalation Data (CSV)", data=csv, file_name="escalation_data.csv", mime="text/csv", key="dl_escalation")
+        st.download_button("Download Escalation Data (CSV)", data=csv, file_name="escalation_data.csv", mime="text/csv", key="dl_escalation")
 
 # ==================== DETAIL PAGE 3: WORKFORCE & PRODUCTIVITY ====================
 elif st.session_state.current_page == 'workforce_productivity':
     col1, col2 = st.columns([1, 6])
     with col1:
-        if st.button("← Back", key="back_workforce"):
+        if st.button("Back", key="back_workforce"):
             st.session_state.current_page = 'main'
             st.rerun()
     with col2:
-        st.markdown("### 👥 Workforce & Productivity - Deep Dive (L2)")
+        st.markdown("### Workforce & Productivity - Deep Dive")
     
     st.markdown("---")
     
@@ -755,10 +940,10 @@ elif st.session_state.current_page == 'workforce_productivity':
     model_data = filter_data(data['Model_Accuracy'])
     collab_data = filter_data(data['Collaboration'])
     
-    st.markdown("#### 📊 L2: Detailed Metrics with Trends & Analysis")
+    st.markdown("#### Detailed Metrics with Trends & Analysis")
     
     # ROW 1: Output & Productivity
-    st.markdown("**1. Output & Productivity per FTE**")
+    st.markdown("**Output & Productivity per FTE**")
     col1, col2, col3 = st.columns([1, 1, 1])
     
     with col1:
@@ -794,7 +979,7 @@ elif st.session_state.current_page == 'workforce_productivity':
     st.divider()
     
     # ROW 2: Capacity Utilization
-    st.markdown("**2. Capacity Utilization & Workload**")
+    st.markdown("**Capacity Utilization & Workload**")
     col1, col2, col3 = st.columns([1, 1, 1])
     
     with col1:
@@ -832,7 +1017,7 @@ elif st.session_state.current_page == 'workforce_productivity':
     st.divider()
     
     # ROW 3: Model Accuracy
-    st.markdown("**3. Capacity Model Accuracy**")
+    st.markdown("**Capacity Model Accuracy**")
     col1, col2, col3 = st.columns([1, 1, 1])
     
     with col1:
@@ -868,7 +1053,7 @@ elif st.session_state.current_page == 'workforce_productivity':
     st.divider()
     
     # ROW 4: Employee Health
-    st.markdown("**4. Employee Health & At-Risk Employees**")
+    st.markdown("**Employee Health & At-Risk Employees**")
     col1, col2, col3 = st.columns([1, 1, 1])
     
     with col1:
@@ -901,35 +1086,35 @@ elif st.session_state.current_page == 'workforce_productivity':
                 st.plotly_chart(fig, use_container_width=True)
     
     st.markdown("---")
-    st.markdown("#### 📋 L3: Detailed Data & Export")
+    st.markdown("#### Detailed Data & Export")
     
     tabs = st.tabs(["Capacity", "Work Models", "Model Accuracy", "Collaboration"])
     
     with tabs[0]:
         st.dataframe(capacity_data.head(100), use_container_width=True, hide_index=True)
         csv = capacity_data.to_csv(index=False)
-        st.download_button("📥 Download Capacity Data (CSV)", data=csv, file_name="capacity_data.csv", mime="text/csv", key="dl_capacity")
+        st.download_button("Download Capacity Data (CSV)", data=csv, file_name="capacity_data.csv", mime="text/csv", key="dl_capacity")
     
     with tabs[1]:
         st.dataframe(work_data.head(100), use_container_width=True, hide_index=True)
         csv = work_data.to_csv(index=False)
-        st.download_button("📥 Download Work Models (CSV)", data=csv, file_name="work_models_data.csv", mime="text/csv", key="dl_workmodels")
+        st.download_button("Download Work Models (CSV)", data=csv, file_name="work_models_data.csv", mime="text/csv", key="dl_workmodels")
     
     with tabs[2]:
         st.dataframe(model_data.head(100), use_container_width=True, hide_index=True)
         csv = model_data.to_csv(index=False)
-        st.download_button("📥 Download Model Accuracy (CSV)", data=csv, file_name="model_accuracy.csv", mime="text/csv", key="dl_model")
+        st.download_button("Download Model Accuracy (CSV)", data=csv, file_name="model_accuracy.csv", mime="text/csv", key="dl_model")
     
     with tabs[3]:
         st.dataframe(collab_data.head(100), use_container_width=True, hide_index=True)
         csv = collab_data.to_csv(index=False)
-        st.download_button("📥 Download Collaboration (CSV)", data=csv, file_name="collaboration_data.csv", mime="text/csv", key="dl_collab")
+        st.download_button("Download Collaboration (CSV)", data=csv, file_name="collaboration_data.csv", mime="text/csv", key="dl_collab")
 
 # ==================== FOOTER ====================
 st.divider()
 st.markdown(f"""
     <div style="text-align: center; padding: 15px; color: #6b7280; font-size: 11px;">
-        <strong>COO Dashboard v9.0 - Complete Visualization System</strong> | 
+        <strong>COO Dashboard v10.0 - Professional Edition</strong> | 
         {len(selected_months)} months | {len(dept_filter) if dept_filter else len(all_departments)} departments | 
         Updated: {datetime.now().strftime('%Y-%m-%d %H:%M')}
     </div>
