@@ -8,7 +8,7 @@ import io
 
 # ==================== PAGE CONFIG ====================
 st.set_page_config(
-    page_title="COO Operational Dashboard",
+    page_title="COO Dashboard",
     page_icon="📊",
     layout="wide",
     initial_sidebar_state="expanded"
