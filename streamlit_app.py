@@ -53,15 +53,16 @@ st.markdown("""
         margin-bottom: 16px;
     }
 
-    /* Sub-objective Box */
+    /* Sub-objective Box with inline sparkline */
     .subobjective-box {
         background: #f9fafb;
         border-left: 4px solid #1e40af;
         padding: 12px;
         border-radius: 6px;
         margin-bottom: 10px;
-        display: flex;
-        justify-content: space-between;
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 12px;
         align-items: center;
     }
 
@@ -91,10 +92,12 @@ st.markdown("""
         color: #6b7280;
     }
 
-    .subobjective-chart {
-        width: 80px;
+    .sparkline-container {
+        width: 90px;
         height: 40px;
-        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
 
     /* Trend indicator */
@@ -235,8 +238,8 @@ def create_trend_chart(df, x_col, y_col, title, color='#1e40af'):
     )
     return fig
 
-def create_mini_chart(df, x_col, y_col, color='#1e40af'):
-    """Create a mini sparkline chart"""
+def create_sparkline(df, x_col, y_col, color='#1e40af'):
+    """Create a compact sparkline chart for inline display"""
     if len(df) < 2:
         return None
     
@@ -245,20 +248,22 @@ def create_mini_chart(df, x_col, y_col, color='#1e40af'):
         x=df[x_col],
         y=df[y_col],
         mode='lines',
-        line=dict(color=color, width=2),
+        line=dict(color=color, width=2.5),
         fill='tozeroy',
-        fillcolor=f'rgba({int(color[1:3], 16)}, {int(color[3:5], 16)}, {int(color[5:7], 16)}, 0.1)',
-        hoverinfo='none'
+        fillcolor=f'rgba({int(color[1:3], 16)}, {int(color[3:5], 16)}, {int(color[5:7], 16)}, 0.15)',
+        hoverinfo='y',
+        hovertemplate='<b>%{y:.1f}</b><extra></extra>'
     ))
     fig.update_layout(
         title=None,
         height=40,
+        width=90,
         margin=dict(l=0, r=0, t=0, b=0),
         showlegend=False,
         plot_bgcolor="rgba(0,0,0,0)",
         xaxis=dict(showticklabels=False, showgrid=False),
         yaxis=dict(showticklabels=False, showgrid=False),
-        hovermode=False
+        hovermode='x'
     )
     return fig
 
@@ -301,21 +306,6 @@ def get_month_over_month_change(df, metric_col, month_col='Month'):
     
     return last_value, change
 
-def render_kpi_card_with_chart(icon, title, value, trend, mini_fig):
-    """Render a KPI card with mini chart"""
-    trend_class = 'trend-up' if float(trend.split()[0]) >= 0 else 'trend-down'
-    
-    html = f"""
-    <div class="subobjective-box">
-        <div class="subobjective-info">
-            <div class="subobjective-title">{title}</div>
-            <div class="subobjective-value">{value}</div>
-            <div class="subobjective-trend"><span class="{trend_class}">{trend}</span></div>
-        </div>
-    </div>
-    """
-    return html
-
 # ==================== HEADER ====================
 st.markdown("""
     <div style="background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%); 
@@ -357,9 +347,12 @@ if st.session_state.current_page == 'main':
             st.session_state.current_page = 'cost_efficiency'
             st.rerun()
         
-        card_html = f"""
-        <div class="objective-card">
-            <div class="objective-signal">Monitor: ROI + Rework + Automation Coverage</div>
+        st.markdown('<div class="objective-card"><div class="objective-signal">Monitor: ROI + Rework + Automation Coverage</div>', unsafe_allow_html=True)
+        
+        # Rework Cost
+        chart_col_rework1, chart_col_rework2 = st.columns([3, 1], gap="small")
+        with chart_col_rework1:
+            st.markdown(f"""
             <div class="subobjective-box cost">
                 <div class="subobjective-info">
                     <div class="subobjective-title">Rework Cost %</div>
@@ -367,6 +360,18 @@ if st.session_state.current_page == 'main':
                     <div class="subobjective-trend"><span class="trend-down">{rework_trend}</span></div>
                 </div>
             </div>
+            """, unsafe_allow_html=True)
+        with chart_col_rework2:
+            if len(rework_data) > 1:
+                rework_trend_data = rework_data.groupby('Month').agg({'Rework_Cost_Percentage': 'mean'}).reset_index().sort_values('Month')
+                fig = create_sparkline(rework_trend_data, 'Month', 'Rework_Cost_Percentage', '#ef4444')
+                if fig:
+                    st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
+        
+        # Automation ROI
+        chart_col_auto1, chart_col_auto2 = st.columns([3, 1], gap="small")
+        with chart_col_auto1:
+            st.markdown(f"""
             <div class="subobjective-box efficiency">
                 <div class="subobjective-info">
                     <div class="subobjective-title">Automation ROI</div>
@@ -374,6 +379,18 @@ if st.session_state.current_page == 'main':
                     <div class="subobjective-trend"><span class="trend-up">{auto_trend}</span></div>
                 </div>
             </div>
+            """, unsafe_allow_html=True)
+        with chart_col_auto2:
+            if len(auto_data) > 1:
+                auto_trend_data = auto_data.groupby('Month').agg({'ROI_Percentage_6M': 'mean'}).reset_index().sort_values('Month')
+                fig = create_sparkline(auto_trend_data, 'Month', 'ROI_Percentage_6M', '#059669')
+                if fig:
+                    st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
+        
+        # Automation Coverage
+        chart_col_cov1, chart_col_cov2 = st.columns([3, 1], gap="small")
+        with chart_col_cov1:
+            st.markdown(f"""
             <div class="subobjective-box efficiency">
                 <div class="subobjective-info">
                     <div class="subobjective-title">Automation Coverage</div>
@@ -381,6 +398,14 @@ if st.session_state.current_page == 'main':
                     <div class="subobjective-trend">Process automation</div>
                 </div>
             </div>
+            """, unsafe_allow_html=True)
+        with chart_col_cov2:
+            st.write("")  # Placeholder
+        
+        # Digital Friction
+        chart_col_fric1, chart_col_fric2 = st.columns([3, 1], gap="small")
+        with chart_col_fric1:
+            st.markdown(f"""
             <div class="subobjective-box efficiency">
                 <div class="subobjective-info">
                     <div class="subobjective-title">Digital Friction Index</div>
@@ -388,17 +413,15 @@ if st.session_state.current_page == 'main':
                     <div class="subobjective-trend"><span class="trend-down">{friction_trend}</span></div>
                 </div>
             </div>
-        </div>
-        """
-        st.markdown(card_html, unsafe_allow_html=True)
+            """, unsafe_allow_html=True)
+        with chart_col_fric2:
+            if len(digital_data) > 1:
+                friction_trend_data = digital_data.groupby('Month').agg({'Friction_Index_Score': 'mean'}).reset_index().sort_values('Month')
+                fig = create_sparkline(friction_trend_data, 'Month', 'Friction_Index_Score', '#f59e0b')
+                if fig:
+                    st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
         
-        # Add mini charts
-        if len(rework_data) > 1:
-            rework_trend_data = rework_data.groupby('Month').agg({
-                'Rework_Cost_Percentage': 'mean'
-            }).reset_index().sort_values('Month')
-            fig = create_mini_chart(rework_trend_data, 'Month', 'Rework_Cost_Percentage', '#ef4444')
-            st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
+        st.markdown('</div>', unsafe_allow_html=True)
     
     # -------- OBJECTIVE 2: EXECUTION & RESILIENCE --------
     with col2:
@@ -425,9 +448,12 @@ if st.session_state.current_page == 'main':
             st.session_state.current_page = 'execution_resilience'
             st.rerun()
         
-        card_html = f"""
-        <div class="objective-card">
-            <div class="objective-signal">Monitor: Quality + Reliability + Risk</div>
+        st.markdown('<div class="objective-card"><div class="objective-signal">Monitor: Quality + Reliability + Risk</div>', unsafe_allow_html=True)
+        
+        # FTR Rate
+        chart_col_ftr1, chart_col_ftr2 = st.columns([3, 1], gap="small")
+        with chart_col_ftr1:
+            st.markdown(f"""
             <div class="subobjective-box quality">
                 <div class="subobjective-info">
                     <div class="subobjective-title">FTR Rate</div>
@@ -435,6 +461,18 @@ if st.session_state.current_page == 'main':
                     <div class="subobjective-trend"><span class="trend-up">{ftr_trend}</span></div>
                 </div>
             </div>
+            """, unsafe_allow_html=True)
+        with chart_col_ftr2:
+            if len(ftr_data) > 1:
+                ftr_trend_data = ftr_data.groupby('Month').agg({'FTR_Rate_Percentage': 'mean'}).reset_index().sort_values('Month')
+                fig = create_sparkline(ftr_trend_data, 'Month', 'FTR_Rate_Percentage', '#059669')
+                if fig:
+                    st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
+        
+        # Process Adherence
+        chart_col_adh1, chart_col_adh2 = st.columns([3, 1], gap="small")
+        with chart_col_adh1:
+            st.markdown(f"""
             <div class="subobjective-box quality">
                 <div class="subobjective-info">
                     <div class="subobjective-title">Process Adherence</div>
@@ -442,6 +480,18 @@ if st.session_state.current_page == 'main':
                     <div class="subobjective-trend"><span class="trend-up">{adh_trend}</span></div>
                 </div>
             </div>
+            """, unsafe_allow_html=True)
+        with chart_col_adh2:
+            if len(adherence_data) > 1:
+                adh_trend_data = adherence_data.groupby('Month').agg({'Adherence_Rate_Percentage': 'mean'}).reset_index().sort_values('Month')
+                fig = create_sparkline(adh_trend_data, 'Month', 'Adherence_Rate_Percentage', '#059669')
+                if fig:
+                    st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
+        
+        # Resilience Score
+        chart_col_res1, chart_col_res2 = st.columns([3, 1], gap="small")
+        with chart_col_res1:
+            st.markdown(f"""
             <div class="subobjective-box quality">
                 <div class="subobjective-info">
                     <div class="subobjective-title">Resilience Score</div>
@@ -449,6 +499,18 @@ if st.session_state.current_page == 'main':
                     <div class="subobjective-trend"><span class="trend-up">{res_trend}</span></div>
                 </div>
             </div>
+            """, unsafe_allow_html=True)
+        with chart_col_res2:
+            if len(resilience_data) > 1:
+                res_trend_data = resilience_data.groupby('Month').agg({'Resilience_Score': 'mean'}).reset_index().sort_values('Month')
+                fig = create_sparkline(res_trend_data, 'Month', 'Resilience_Score', '#0891b2')
+                if fig:
+                    st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
+        
+        # Escalations
+        chart_col_esc1, chart_col_esc2 = st.columns([3, 1], gap="small")
+        with chart_col_esc1:
+            st.markdown(f"""
             <div class="subobjective-box cost">
                 <div class="subobjective-info">
                     <div class="subobjective-title">Escalations</div>
@@ -456,17 +518,11 @@ if st.session_state.current_page == 'main':
                     <div class="subobjective-trend">Exception volume</div>
                 </div>
             </div>
-        </div>
-        """
-        st.markdown(card_html, unsafe_allow_html=True)
+            """, unsafe_allow_html=True)
+        with chart_col_esc2:
+            st.write("")  # Placeholder
         
-        # Add mini chart
-        if len(ftr_data) > 1:
-            ftr_trend_data = ftr_data.groupby('Month').agg({
-                'FTR_Rate_Percentage': 'mean'
-            }).reset_index().sort_values('Month')
-            fig = create_mini_chart(ftr_trend_data, 'Month', 'FTR_Rate_Percentage', '#059669')
-            st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
+        st.markdown('</div>', unsafe_allow_html=True)
     
     # -------- OBJECTIVE 3: WORKFORCE & PRODUCTIVITY --------
     with col3:
@@ -492,9 +548,12 @@ if st.session_state.current_page == 'main':
             st.session_state.current_page = 'workforce_productivity'
             st.rerun()
         
-        card_html = f"""
-        <div class="objective-card">
-            <div class="objective-signal">Monitor: Output + Capacity + Health</div>
+        st.markdown('<div class="objective-card"><div class="objective-signal">Monitor: Output + Capacity + Health</div>', unsafe_allow_html=True)
+        
+        # Output/FTE
+        chart_col_out1, chart_col_out2 = st.columns([3, 1], gap="small")
+        with chart_col_out1:
+            st.markdown(f"""
             <div class="subobjective-box efficiency">
                 <div class="subobjective-info">
                     <div class="subobjective-title">Output/FTE</div>
@@ -502,6 +561,18 @@ if st.session_state.current_page == 'main':
                     <div class="subobjective-trend"><span class="trend-up">{out_trend}</span></div>
                 </div>
             </div>
+            """, unsafe_allow_html=True)
+        with chart_col_out2:
+            if len(work_data) > 1:
+                out_trend_data = work_data.groupby('Month').agg({'Output_Per_Hour': 'mean'}).reset_index().sort_values('Month')
+                fig = create_sparkline(out_trend_data, 'Month', 'Output_Per_Hour', '#059669')
+                if fig:
+                    st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
+        
+        # Capacity Utilization
+        chart_col_cap1, chart_col_cap2 = st.columns([3, 1], gap="small")
+        with chart_col_cap1:
+            st.markdown(f"""
             <div class="subobjective-box efficiency">
                 <div class="subobjective-info">
                     <div class="subobjective-title">Capacity Utilization</div>
@@ -509,6 +580,18 @@ if st.session_state.current_page == 'main':
                     <div class="subobjective-trend"><span class="trend-down">{cap_trend}</span></div>
                 </div>
             </div>
+            """, unsafe_allow_html=True)
+        with chart_col_cap2:
+            if len(capacity_data) > 1:
+                cap_trend_data = capacity_data.groupby('Month').agg({'Capacity_Utilization_Percentage': 'mean'}).reset_index().sort_values('Month')
+                fig = create_sparkline(cap_trend_data, 'Month', 'Capacity_Utilization_Percentage', '#f59e0b')
+                if fig:
+                    st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
+        
+        # At-Risk Employees
+        chart_col_risk1, chart_col_risk2 = st.columns([3, 1], gap="small")
+        with chart_col_risk1:
+            st.markdown(f"""
             <div class="subobjective-box cost">
                 <div class="subobjective-info">
                     <div class="subobjective-title">At-Risk Employees</div>
@@ -516,6 +599,14 @@ if st.session_state.current_page == 'main':
                     <div class="subobjective-trend">Burnout risk count</div>
                 </div>
             </div>
+            """, unsafe_allow_html=True)
+        with chart_col_risk2:
+            st.write("")  # Placeholder
+        
+        # Model Accuracy
+        chart_col_model1, chart_col_model2 = st.columns([3, 1], gap="small")
+        with chart_col_model1:
+            st.markdown(f"""
             <div class="subobjective-box quality">
                 <div class="subobjective-info">
                     <div class="subobjective-title">Model Accuracy</div>
@@ -523,17 +614,15 @@ if st.session_state.current_page == 'main':
                     <div class="subobjective-trend"><span class="trend-up">{model_trend}</span></div>
                 </div>
             </div>
-        </div>
-        """
-        st.markdown(card_html, unsafe_allow_html=True)
+            """, unsafe_allow_html=True)
+        with chart_col_model2:
+            if len(model_data) > 1:
+                model_trend_data = model_data.groupby('Month').agg({'Forecast_Accuracy_Percentage': 'mean'}).reset_index().sort_values('Month')
+                fig = create_sparkline(model_trend_data, 'Month', 'Forecast_Accuracy_Percentage', '#059669')
+                if fig:
+                    st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
         
-        # Add mini chart
-        if len(work_data) > 1:
-            work_trend_data = work_data.groupby('Month').agg({
-                'Output_Per_Hour': 'mean'
-            }).reset_index().sort_values('Month')
-            fig = create_mini_chart(work_trend_data, 'Month', 'Output_Per_Hour', '#059669')
-            st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
+        st.markdown('</div>', unsafe_allow_html=True)
 
 # ==================== DETAIL PAGE 1: COST & EFFICIENCY ====================
 elif st.session_state.current_page == 'cost_efficiency':
@@ -1114,7 +1203,7 @@ elif st.session_state.current_page == 'workforce_productivity':
 st.divider()
 st.markdown(f"""
     <div style="text-align: center; padding: 15px; color: #6b7280; font-size: 11px;">
-        <strong>COO Dashboard v10.0 - Professional Edition</strong> | 
+        <strong>COO Dashboard v11.0 - Professional Edition with Inline Sparklines</strong> | 
         {len(selected_months)} months | {len(dept_filter) if dept_filter else len(all_departments)} departments | 
         Updated: {datetime.now().strftime('%Y-%m-%d %H:%M')}
     </div>
