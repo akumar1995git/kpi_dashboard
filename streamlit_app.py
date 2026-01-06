@@ -95,7 +95,7 @@ st.markdown("""
     }
 
     .subobjective-trend {
-        font-size: 11px;
+        font-size: 22px;
         color: #6b7280;
     }
 
