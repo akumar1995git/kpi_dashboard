@@ -5,6 +5,9 @@ import plotly.express as px
 import numpy as np
 from datetime import datetime, timedelta
 import io
+import warnings
+
+warnings.filterwarnings('ignore')
 
 # ==================== PAGE CONFIG ====================
 st.set_page_config(
@@ -185,7 +188,7 @@ st.markdown("""
         color: #6b7280;
     }
 
-    /* Insights Box - Without Emojis */
+    /* Insights Box */
     .insights-box {
         background: #fef3c7;
         border-left: 4px solid #f59e0b;
@@ -212,32 +215,52 @@ st.markdown("""
     .at-risk-row { background-color: #fecaca; }
     .warning-row { background-color: #fef3c7; }
     .normal-row { background-color: #dcfce7; }
+
+    /* Metric Card Enhancement */
+    .metric-container {
+        background: white;
+        border-radius: 8px;
+        padding: 12px;
+        border: 1px solid #e5e7eb;
+        margin: 8px 0;
+    }
     </style>
 """, unsafe_allow_html=True)
 
 # ==================== LOAD DATA ====================
 @st.cache_data
 def load_excel_data():
+    """Load all required data sheets from Excel file with error handling"""
     try:
         excel_file = 'COO_ROI_Dashboard_KPIs_Complete_12.xlsx'
         
-        data = {
-            'Role_vs_Reality': pd.read_excel(excel_file, sheet_name='Role_vs_Reality_Analysis'),
-            'Automation_ROI': pd.read_excel(excel_file, sheet_name='Automation_ROI_Potential'),
-            'Digital_Index': pd.read_excel(excel_file, sheet_name='Digital_Workplace_Index'),
-            'Process_Rework': pd.read_excel(excel_file, sheet_name='Process_Rework_Cost'),
-            'FTR_Rate': pd.read_excel(excel_file, sheet_name='First_Time_Right_Rate'),
-            'Adherence': pd.read_excel(excel_file, sheet_name='Process_Adherence_Rate'),
-            'Resilience': pd.read_excel(excel_file, sheet_name='Operational_Resilience_Score'),
-            'Escalation': pd.read_excel(excel_file, sheet_name='Escalation_Exception_Patterns'),
-            'Capacity': pd.read_excel(excel_file, sheet_name='Hidden_Capacity_Burnout'),
-            'Model_Accuracy': pd.read_excel(excel_file, sheet_name='Capacity_Model_Accuracy'),
-            'Work_Models': pd.read_excel(excel_file, sheet_name='Work_Models_Effectiveness'),
-            'Collaboration': pd.read_excel(excel_file, sheet_name='Collaboration_Overload'),
+        sheet_mapping = {
+            'Role_vs_Reality': 'Role_vs_Reality_Analysis',
+            'Automation_ROI': 'Automation_ROI_Potential',
+            'Digital_Index': 'Digital_Workplace_Index',
+            'Process_Rework': 'Process_Rework_Cost',
+            'FTR_Rate': 'First_Time_Right_Rate',
+            'Adherence': 'Process_Adherence_Rate',
+            'Resilience': 'Operational_Resilience_Score',
+            'Escalation': 'Escalation_Exception_Patterns',
+            'Capacity': 'Hidden_Capacity_Burnout',
+            'Model_Accuracy': 'Capacity_Model_Accuracy',
+            'Work_Models': 'Work_Models_Effectiveness',
+            'Collaboration': 'Collaboration_Overload',
         }
+        
+        data = {}
+        for key, sheet_name in sheet_mapping.items():
+            try:
+                data[key] = pd.read_excel(excel_file, sheet_name=sheet_name)
+            except Exception as e:
+                st.warning(f"Could not load sheet '{sheet_name}': {str(e)}")
+                data[key] = pd.DataFrame()
+        
         return data
     except FileNotFoundError:
-        st.error("File not found: 'COO_ROI_Dashboard_KPIs_Complete_12.xlsx'")
+        st.error("❌ File not found: 'COO_ROI_Dashboard_KPIs_Complete_12.xlsx'")
+        st.info("Please ensure the Excel file is in the same directory as this script.")
         st.stop()
 
 data = load_excel_data()
@@ -247,40 +270,59 @@ if 'current_page' not in st.session_state:
     st.session_state.current_page = 'main'
 
 # ==================== SIDEBAR FILTERS ====================
-st.sidebar.markdown("## Filters")
+st.sidebar.markdown("## 🔧 Filters")
 
-role_months = sorted(data['Role_vs_Reality']['Month'].unique())
-selected_months = st.sidebar.multiselect(
-    "Select Months",
-    role_months,
-    default=list(role_months),
-)
+# Month filter
+if 'Month' in data['Role_vs_Reality'].columns:
+    role_months = sorted(data['Role_vs_Reality']['Month'].unique())
+    selected_months = st.sidebar.multiselect(
+        "Select Months",
+        role_months,
+        default=list(role_months),
+    )
+else:
+    selected_months = None
+    st.sidebar.warning("Month column not found in data")
 
-all_departments = sorted(
-    list(set(list(data['Role_vs_Reality'].get('Department', []).unique()) + 
-             list(data['Capacity'].get('Department', []).unique())))
-)
-selected_depts = st.sidebar.multiselect(
-    "Select Departments",
-    all_departments,
-    default=all_departments,
-)
-
-dept_filter = selected_depts if len(selected_depts) > 0 else None
+# Department filter
+if 'Department' in data['Role_vs_Reality'].columns or 'Department' in data['Capacity'].columns:
+    all_departments = sorted(
+        list(set(list(data['Role_vs_Reality'].get('Department', []).unique()) + 
+                 list(data['Capacity'].get('Department', []).unique())))
+    )
+    selected_depts = st.sidebar.multiselect(
+        "Select Departments",
+        all_departments,
+        default=all_departments,
+    )
+    dept_filter = selected_depts if len(selected_depts) > 0 else None
+else:
+    dept_filter = None
+    st.sidebar.warning("Department column not found in data")
 
 st.sidebar.markdown("---")
-st.sidebar.markdown(f"**Updated:** {datetime.now().strftime('%Y-%m-%d %H:%M')}")
+st.sidebar.markdown(f"**Last Updated:** {datetime.now().strftime('%Y-%m-%d %H:%M')}")
+st.sidebar.markdown("**Dashboard Version:** 15.0 - Professional Edition")
 
 # ==================== HELPER FUNCTIONS ====================
 def filter_data(df, month_col='Month', dept_col='Department'):
-    result = df[df[month_col].isin(selected_months)]
+    """Filter dataframe by selected months and departments"""
+    if df.empty:
+        return pd.DataFrame()
+    
+    result = df.copy()
+    
+    if selected_months and month_col in result.columns:
+        result = result[result[month_col].isin(selected_months)]
+    
     if dept_filter and dept_col in result.columns:
         result = result[result[dept_col].isin(dept_filter)]
+    
     return result
 
 def create_trend_chart(df, x_col, y_col, title, color='#1e40af', height=280):
-    """Create a trend line chart"""
-    if len(df) < 2:
+    """Create a trend line chart with fill"""
+    if df.empty or len(df) < 2:
         return None
     
     fig = go.Figure()
@@ -291,7 +333,8 @@ def create_trend_chart(df, x_col, y_col, title, color='#1e40af', height=280):
         line=dict(color=color, width=3),
         marker=dict(size=8),
         fill='tozeroy',
-        fillcolor=f'rgba(30, 64, 175, 0.1)'
+        fillcolor=f'rgba(30, 64, 175, 0.1)',
+        hovertemplate='<b>%{x}</b><br>Value: %{y:.2f}<extra></extra>'
     ))
     fig.update_layout(
         title=title,
@@ -299,13 +342,15 @@ def create_trend_chart(df, x_col, y_col, title, color='#1e40af', height=280):
         margin=dict(l=0, r=0, t=30, b=0),
         showlegend=False,
         plot_bgcolor="rgba(0,0,0,0)",
-        hovermode='x unified'
+        hovermode='x unified',
+        xaxis_title="",
+        yaxis_title=""
     )
     return fig
 
 def create_sparkline(df, x_col, y_col, color='#1e40af'):
     """Create a compact sparkline chart for inline display"""
-    if len(df) < 2:
+    if df.empty or len(df) < 2:
         return None
     
     fig = go.Figure()
@@ -361,115 +406,121 @@ def create_gauge_chart(value, max_value, title, color='#1e40af', size='medium'):
 
 def create_heatmap(df, x_col, y_col, value_col, title='Heatmap'):
     """Create a heatmap chart"""
-    if len(df) < 2:
+    if df.empty or len(df) < 2:
         return None
     
-    pivot_df = df.pivot_table(values=value_col, index=y_col, columns=x_col, aggfunc='mean')
-    
-    fig = go.Figure(data=go.Heatmap(
-        z=pivot_df.values,
-        x=pivot_df.columns,
-        y=pivot_df.index,
-        colorscale='RdYlGn',
-        text=np.round(pivot_df.values, 1),
-        texttemplate='%{text:.1f}',
-        textfont={"size": 10},
-        hovertemplate='%{y}: %{x}<br>Value: %{z:.1f}<extra></extra>'
-    ))
-    
-    fig.update_layout(
-        title=title,
-        height=300,
-        xaxis_title=x_col,
-        yaxis_title=y_col,
-        plot_bgcolor="rgba(0,0,0,0)"
-    )
-    return fig
+    try:
+        pivot_df = df.pivot_table(values=value_col, index=y_col, columns=x_col, aggfunc='mean')
+        
+        fig = go.Figure(data=go.Heatmap(
+            z=pivot_df.values,
+            x=pivot_df.columns,
+            y=pivot_df.index,
+            colorscale='RdYlGn',
+            text=np.round(pivot_df.values, 1),
+            texttemplate='%{text:.1f}',
+            textfont={"size": 10},
+            hovertemplate='%{y}: %{x}<br>Value: %{z:.1f}<extra></extra>'
+        ))
+        
+        fig.update_layout(
+            title=title,
+            height=300,
+            xaxis_title=x_col,
+            yaxis_title=y_col,
+            plot_bgcolor="rgba(0,0,0,0)"
+        )
+        return fig
+    except Exception as e:
+        st.error(f"Could not create heatmap: {str(e)}")
+        return None
 
 def get_month_over_month_change(df, metric_col, month_col='Month'):
     """Calculate month-over-month change"""
-    if len(df) < 2:
+    if df.empty or len(df) < 2:
         return None, None
     
     df_sorted = df.sort_values(month_col)
     if len(df_sorted) < 2:
         return None, None
     
-    last_value = df_sorted[metric_col].iloc[-1]
-    prev_value = df_sorted[metric_col].iloc[-2]
-    
-    if prev_value == 0:
-        change = 0
-    else:
-        change = ((last_value - prev_value) / abs(prev_value)) * 100
-    
-    return last_value, change
+    try:
+        last_value = df_sorted[metric_col].iloc[-1]
+        prev_value = df_sorted[metric_col].iloc[-2]
+        
+        if prev_value == 0:
+            change = 0
+        else:
+            change = ((last_value - prev_value) / abs(prev_value)) * 100
+        
+        return last_value, change
+    except Exception:
+        return None, None
 
 def round_value(value, metric_type='percentage'):
     """Round values intelligently based on metric type"""
-    if metric_type == 'percentage':
-        return round(value, 1)
-    elif metric_type == 'decimal':
-        return round(value, 3)
-    elif metric_type == 'whole':
-        return int(round(value, 0))
-    elif metric_type == 'index':
+    try:
+        if metric_type == 'percentage':
+            return round(value, 1)
+        elif metric_type == 'decimal':
+            return round(value, 3)
+        elif metric_type == 'whole':
+            return int(round(value, 0))
+        elif metric_type == 'index':
+            return round(value, 2)
+        elif metric_type == 'currency':
+            return round(value, 0)
+        elif metric_type == 'hours':
+            return round(value, 1)
         return round(value, 2)
-    elif metric_type == 'currency':
-        return round(value, 0)
-    elif metric_type == 'hours':
-        return round(value, 1)
-    return round(value, 2)
+    except Exception:
+        return value
 
 def show_navigation():
     """Display navigation buttons"""
     col1, col2, col3, col4 = st.columns([1, 1, 1, 2])
     
     with col1:
-        if st.button("Home", key="btn_home", use_container_width=True):
+        if st.button("🏠 Home", key="btn_home", use_container_width=True):
             st.session_state.current_page = 'main'
             st.rerun()
     
     with col2:
-        if st.button("Cost & Efficiency", key="btn_nav_cost", use_container_width=True):
+        if st.button("💰 Cost & Efficiency", key="btn_nav_cost", use_container_width=True):
             st.session_state.current_page = 'cost_efficiency'
             st.rerun()
     
     with col3:
-        if st.button("Execution & Resilience", key="btn_nav_exec", use_container_width=True):
+        if st.button("✅ Execution & Resilience", key="btn_nav_exec", use_container_width=True):
             st.session_state.current_page = 'execution_resilience'
             st.rerun()
     
     with col4:
-        if st.button("Workforce & Productivity", key="btn_nav_workforce", use_container_width=True):
+        if st.button("👥 Workforce & Productivity", key="btn_nav_workforce", use_container_width=True):
             st.session_state.current_page = 'workforce_productivity'
             st.rerun()
 
-def highlight_row_color(val, metric_type='percentage'):
-    """Return color based on value thresholds"""
-    if metric_type == 'percentage':
-        if val >= 80:
-            return 'background-color: #dcfce7'  # Green - Good
-        elif val >= 60:
-            return 'background-color: #fef3c7'  # Yellow - Warning
-        else:
-            return 'background-color: #fecaca'  # Red - At Risk
-    elif metric_type == 'capacity':
-        if 85 <= val <= 100:
-            return 'background-color: #dcfce7'  # Green - Optimal
-        elif val > 100 or val < 85:
-            return 'background-color: #fef3c7'  # Yellow - Concerning
-        else:
-            return 'background-color: #fecaca'  # Red - Critical
-    return ''
+def get_trend_arrow(change):
+    """Get trend arrow emoji based on change value"""
+    if change is None:
+        return "→"
+    elif change > 0:
+        return "↑"
+    elif change < 0:
+        return "↓"
+    return "→"
+
+def export_data_to_csv(df, filename):
+    """Export dataframe to CSV"""
+    return df.to_csv(index=False)
 
 # ==================== HEADER ====================
 st.markdown("""
     <div style="background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%); 
                 color: white; padding: 30px 20px; border-radius: 0; 
                 margin: -25px -20px 25px -20px; text-align: center;">
-        <h1 style="margin: 0; font-size: 36px;">COO Operational Dashboard</h1>
-        <p style="margin: 8px 0 0 0; opacity: 0.9; font-size: 14px;">Executive KPI Management with Visual Analytics</p>
+        <h1 style="margin: 0; font-size: 36px;">📊 COO Operational Dashboard</h1>
+        <p style="margin: 8px 0 0 0; opacity: 0.9; font-size: 14px;">Executive KPI Management with Advanced Analytics</p>
     </div>
 """, unsafe_allow_html=True)
 
@@ -497,10 +548,10 @@ if st.session_state.current_page == 'main':
         friction_val, friction_change = get_month_over_month_change(digital_data, 'Friction_Index_Score')
         role_val, role_change = get_month_over_month_change(role_data, 'Low_Value_Work_Percentage')
         
-        rework_trend = f"{round_value(rework_change, 'percentage'):+.1f}% vs last month" if rework_change is not None else "No data"
-        auto_trend = f"{round_value(auto_change, 'percentage'):+.1f}% vs last month" if auto_change is not None else "No data"
-        friction_trend = f"{round_value(friction_change, 'percentage'):+.1f}% vs last month" if friction_change is not None else "No data"
-        role_trend = f"{round_value(role_change, 'percentage'):+.1f}% vs last month" if role_change is not None else "No data"
+        rework_trend = f"{get_trend_arrow(rework_change)} {round_value(rework_change, 'percentage'):+.1f}%" if rework_change is not None else "No data"
+        auto_trend = f"{get_trend_arrow(auto_change)} {round_value(auto_change, 'percentage'):+.1f}%" if auto_change is not None else "No data"
+        friction_trend = f"{get_trend_arrow(friction_change)} {round_value(friction_change, 'percentage'):+.1f}%" if friction_change is not None else "No data"
+        role_trend = f"{get_trend_arrow(role_change)} {round_value(role_change, 'percentage'):+.1f}%" if role_change is not None else "No data"
         
         if st.button("Cost & Efficiency", key="btn_cost", use_container_width=True, help="ROI, Rework, Digital Readiness"):
             st.session_state.current_page = 'cost_efficiency'
@@ -514,7 +565,7 @@ if st.session_state.current_page == 'main':
             st.markdown(f"""
             <div class="subobjective-box cost">
                 <div class="subobjective-info">
-                    <div class="subobjective-title">Rework Cost Percentage</div>
+                    <div class="subobjective-title">Rework Cost %</div>
                     <div class="subobjective-value">{round_value(rework_pct, 'percentage'):.1f}%</div>
                     <div class="subobjective-trend"><span class="trend-down">{rework_trend}</span></div>
                 </div>
@@ -523,15 +574,13 @@ if st.session_state.current_page == 'main':
         with chart_col_rework2:
             if len(rework_data) > 1:
                 rework_trend_data = rework_data.groupby('Month').agg({'Rework_Cost_Percentage': 'mean'}).reset_index().sort_values('Month')
-                fig = create_trend_chart(rework_trend_data, 'Month', 'Rework_Cost_Percentage', '', '#ef4444', height=130)
+                fig = create_sparkline(rework_trend_data, 'Month', 'Rework_Cost_Percentage', '#ef4444')
                 if fig:
-                    fig.update_layout(margin=dict(l=0, r=0, t=0, b=0))
                     st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
         
         # Automation ROI
         chart_col_auto1, chart_col_auto2 = st.columns([3, 1], gap="small")
         with chart_col_auto1:
-            auto_processes = auto_data['Process_Name'].nunique() if len(auto_data) > 0 else 0
             st.markdown(f"""
             <div class="subobjective-box efficiency">
                 <div class="subobjective-info">
@@ -541,41 +590,35 @@ if st.session_state.current_page == 'main':
                 </div>
             </div>
             """, unsafe_allow_html=True)
-            st.metric(label="Processes Automated", value=f"{auto_processes}")
         with chart_col_auto2:
             if len(auto_data) > 1:
                 auto_trend_data = auto_data.groupby('Month').agg({'ROI_Percentage_6M': 'mean'}).reset_index().sort_values('Month')
-                fig = create_trend_chart(auto_trend_data, 'Month', 'ROI_Percentage_6M', '', '#059669', height=130)
+                fig = create_sparkline(auto_trend_data, 'Month', 'ROI_Percentage_6M', '#059669')
                 if fig:
-                    fig.update_layout(margin=dict(l=0, r=0, t=0, b=0))
                     st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
         
-        # Low-Value Work Percentage (replaces Automation Coverage)
+        # Low-Value Work
         chart_col_lvw1, chart_col_lvw2 = st.columns([3, 1], gap="small")
         with chart_col_lvw1:
-            low_value_employees = len(role_data[role_data['Low_Value_Work_Percentage'] > 30]) if len(role_data) > 0 else 0
             st.markdown(f"""
             <div class="subobjective-box cost">
                 <div class="subobjective-info">
-                    <div class="subobjective-title">Low-Value Work Percentage</div>
+                    <div class="subobjective-title">Low-Value Work %</div>
                     <div class="subobjective-value">{round_value(role_reality, 'percentage'):.1f}%</div>
                     <div class="subobjective-trend"><span class="trend-down">{role_trend}</span></div>
                 </div>
             </div>
             """, unsafe_allow_html=True)
-            st.metric(label="High-Risk Employees", value=f"{low_value_employees}")
         with chart_col_lvw2:
             if len(role_data) > 1:
                 lvw_trend_data = role_data.groupby('Month').agg({'Low_Value_Work_Percentage': 'mean'}).reset_index().sort_values('Month')
-                fig = create_trend_chart(lvw_trend_data, 'Month', 'Low_Value_Work_Percentage', '', '#ef4444', height=130)
+                fig = create_sparkline(lvw_trend_data, 'Month', 'Low_Value_Work_Percentage', '#ef4444')
                 if fig:
-                    fig.update_layout(margin=dict(l=0, r=0, t=0, b=0))
                     st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
         
         # Digital Friction
         chart_col_fric1, chart_col_fric2 = st.columns([3, 1], gap="small")
         with chart_col_fric1:
-            impacted_depts = digital_data['Department'].nunique() if len(digital_data) > 0 else 0
             st.markdown(f"""
             <div class="subobjective-box efficiency">
                 <div class="subobjective-info">
@@ -585,13 +628,11 @@ if st.session_state.current_page == 'main':
                 </div>
             </div>
             """, unsafe_allow_html=True)
-            st.metric(label="Departments Impacted", value=f"{impacted_depts}")
         with chart_col_fric2:
             if len(digital_data) > 1:
                 friction_trend_data = digital_data.groupby('Month').agg({'Friction_Index_Score': 'mean'}).reset_index().sort_values('Month')
-                fig = create_trend_chart(friction_trend_data, 'Month', 'Friction_Index_Score', '', '#f59e0b', height=130)
+                fig = create_sparkline(friction_trend_data, 'Month', 'Friction_Index_Score', '#f59e0b')
                 if fig:
-                    fig.update_layout(margin=dict(l=0, r=0, t=0, b=0))
                     st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
         
         st.markdown('</div>', unsafe_allow_html=True)
@@ -614,10 +655,10 @@ if st.session_state.current_page == 'main':
         res_val, res_change = get_month_over_month_change(resilience_data, 'Resilience_Score')
         esc_val, esc_change = get_month_over_month_change(escalation_data, 'Step_Exception_Count')
         
-        ftr_trend = f"{round_value(ftr_change, 'percentage'):+.1f}% vs last month" if ftr_change is not None else "No data"
-        adh_trend = f"{round_value(adh_change, 'percentage'):+.1f}% vs last month" if adh_change is not None else "No data"
-        res_trend = f"{round_value(res_change, 'percentage'):+.1f}% vs last month" if res_change is not None else "No data"
-        esc_trend = f"{round_value(esc_change, 'percentage'):+.1f}% vs last month" if esc_change is not None else "No data"
+        ftr_trend = f"{get_trend_arrow(ftr_change)} {round_value(ftr_change, 'percentage'):+.1f}%" if ftr_change is not None else "No data"
+        adh_trend = f"{get_trend_arrow(adh_change)} {round_value(adh_change, 'percentage'):+.1f}%" if adh_change is not None else "No data"
+        res_trend = f"{get_trend_arrow(res_change)} {round_value(res_change, 'percentage'):+.1f}%" if res_change is not None else "No data"
+        esc_trend = f"{get_trend_arrow(esc_change)} {round_value(esc_change, 'percentage'):+.1f}%" if esc_change is not None else "No data"
         
         if st.button("Execution & Resilience", key="btn_execution", use_container_width=True, help="FTR, Adherence, Resilience, Exceptions"):
             st.session_state.current_page = 'execution_resilience'
@@ -628,7 +669,6 @@ if st.session_state.current_page == 'main':
         # FTR Rate
         chart_col_ftr1, chart_col_ftr2 = st.columns([3, 1], gap="small")
         with chart_col_ftr1:
-            best_ftr_dept = ftr_data.groupby('Department')['FTR_Rate_Percentage'].mean().max() if len(ftr_data) > 0 else 0
             st.markdown(f"""
             <div class="subobjective-box quality">
                 <div class="subobjective-info">
@@ -638,19 +678,16 @@ if st.session_state.current_page == 'main':
                 </div>
             </div>
             """, unsafe_allow_html=True)
-            st.metric(label="Best Department", value=f"{round_value(best_ftr_dept, 'percentage'):.1f}%")
         with chart_col_ftr2:
             if len(ftr_data) > 1:
                 ftr_trend_data = ftr_data.groupby('Month').agg({'FTR_Rate_Percentage': 'mean'}).reset_index().sort_values('Month')
-                fig = create_trend_chart(ftr_trend_data, 'Month', 'FTR_Rate_Percentage', '', '#059669', height=130)
+                fig = create_sparkline(ftr_trend_data, 'Month', 'FTR_Rate_Percentage', '#059669')
                 if fig:
-                    fig.update_layout(margin=dict(l=0, r=0, t=0, b=0))
                     st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
         
         # Process Adherence
         chart_col_adh1, chart_col_adh2 = st.columns([3, 1], gap="small")
         with chart_col_adh1:
-            processes_tracked = adherence_data['Process_Name'].nunique() if len(adherence_data) > 0 and 'Process_Name' in adherence_data.columns else 0
             st.markdown(f"""
             <div class="subobjective-box quality">
                 <div class="subobjective-info">
@@ -660,19 +697,16 @@ if st.session_state.current_page == 'main':
                 </div>
             </div>
             """, unsafe_allow_html=True)
-            st.metric(label="Processes Monitored", value=f"{processes_tracked}")
         with chart_col_adh2:
             if len(adherence_data) > 1:
                 adh_trend_data = adherence_data.groupby('Month').agg({'Adherence_Rate_Percentage': 'mean'}).reset_index().sort_values('Month')
-                fig = create_trend_chart(adh_trend_data, 'Month', 'Adherence_Rate_Percentage', '', '#059669', height=130)
+                fig = create_sparkline(adh_trend_data, 'Month', 'Adherence_Rate_Percentage', '#059669')
                 if fig:
-                    fig.update_layout(margin=dict(l=0, r=0, t=0, b=0))
                     st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
         
         # Resilience Score
         chart_col_res1, chart_col_res2 = st.columns([3, 1], gap="small")
         with chart_col_res1:
-            critical_tasks = resilience_data['Critical_Task'].nunique() if len(resilience_data) > 0 and 'Critical_Task' in resilience_data.columns else 0
             st.markdown(f"""
             <div class="subobjective-box quality">
                 <div class="subobjective-info">
@@ -682,35 +716,30 @@ if st.session_state.current_page == 'main':
                 </div>
             </div>
             """, unsafe_allow_html=True)
-            st.metric(label="Critical Tasks Protected", value=f"{critical_tasks}")
         with chart_col_res2:
             if len(resilience_data) > 1:
                 res_trend_data = resilience_data.groupby('Month').agg({'Resilience_Score': 'mean'}).reset_index().sort_values('Month')
-                fig = create_trend_chart(res_trend_data, 'Month', 'Resilience_Score', '', '#0891b2', height=130)
+                fig = create_sparkline(res_trend_data, 'Month', 'Resilience_Score', '#0891b2')
                 if fig:
-                    fig.update_layout(margin=dict(l=0, r=0, t=0, b=0))
                     st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
         
         # Escalations
         chart_col_esc1, chart_col_esc2 = st.columns([3, 1], gap="small")
         with chart_col_esc1:
-            avg_escalation = escalations / len(escalation_data) if len(escalation_data) > 0 else 0
             st.markdown(f"""
             <div class="subobjective-box cost">
                 <div class="subobjective-info">
-                    <div class="subobjective-title">Escalations and Exceptions</div>
+                    <div class="subobjective-title">Escalations & Exceptions</div>
                     <div class="subobjective-value">{round_value(escalations, 'whole'):.0f}</div>
                     <div class="subobjective-trend"><span class="trend-down">{esc_trend}</span></div>
                 </div>
             </div>
             """, unsafe_allow_html=True)
-            st.metric(label="Per Record", value=f"{round_value(avg_escalation, 'decimal'):.2f}")
         with chart_col_esc2:
             if len(escalation_data) > 1:
                 esc_trend_data = escalation_data.groupby('Month').agg({'Step_Exception_Count': 'sum'}).reset_index().sort_values('Month')
-                fig = create_trend_chart(esc_trend_data, 'Month', 'Step_Exception_Count', '', '#ef4444', height=130)
+                fig = create_sparkline(esc_trend_data, 'Month', 'Step_Exception_Count', '#ef4444')
                 if fig:
-                    fig.update_layout(margin=dict(l=0, r=0, t=0, b=0))
                     st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
         
         st.markdown('</div>', unsafe_allow_html=True)
@@ -731,9 +760,9 @@ if st.session_state.current_page == 'main':
         out_val, out_change = get_month_over_month_change(work_data, 'Output_Per_Hour')
         model_val, model_change = get_month_over_month_change(model_data, 'Forecast_Accuracy_Percentage')
         
-        cap_trend = f"{round_value(cap_change, 'percentage'):+.1f}% vs last month" if cap_change is not None else "No data"
-        out_trend = f"{round_value(out_change, 'percentage'):+.1f}% vs last month" if out_change is not None else "No data"
-        model_trend = f"{round_value(model_change, 'percentage'):+.1f}% vs last month" if model_change is not None else "No data"
+        cap_trend = f"{get_trend_arrow(cap_change)} {round_value(cap_change, 'percentage'):+.1f}%" if cap_change is not None else "No data"
+        out_trend = f"{get_trend_arrow(out_change)} {round_value(out_change, 'percentage'):+.1f}%" if out_change is not None else "No data"
+        model_trend = f"{get_trend_arrow(model_change)} {round_value(model_change, 'percentage'):+.1f}%" if model_change is not None else "No data"
         
         if st.button("Workforce and Productivity", key="btn_workforce", use_container_width=True, help="Output, Capacity, Health, Model Accuracy"):
             st.session_state.current_page = 'workforce_productivity'
@@ -744,7 +773,6 @@ if st.session_state.current_page == 'main':
         # Output/FTE
         chart_col_out1, chart_col_out2 = st.columns([3, 1], gap="small")
         with chart_col_out1:
-            best_output = work_data['Output_Per_Hour'].max() if len(work_data) > 0 else 0
             st.markdown(f"""
             <div class="subobjective-box efficiency">
                 <div class="subobjective-info">
@@ -754,19 +782,16 @@ if st.session_state.current_page == 'main':
                 </div>
             </div>
             """, unsafe_allow_html=True)
-            st.metric(label="Peak Performance", value=f"{round_value(best_output, 'decimal'):.2f}")
         with chart_col_out2:
             if len(work_data) > 1:
                 out_trend_data = work_data.groupby('Month').agg({'Output_Per_Hour': 'mean'}).reset_index().sort_values('Month')
-                fig = create_trend_chart(out_trend_data, 'Month', 'Output_Per_Hour', '', '#059669', height=130)
+                fig = create_sparkline(out_trend_data, 'Month', 'Output_Per_Hour', '#059669')
                 if fig:
-                    fig.update_layout(margin=dict(l=0, r=0, t=0, b=0))
                     st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
         
         # Capacity Utilization
         chart_col_cap1, chart_col_cap2 = st.columns([3, 1], gap="small")
         with chart_col_cap1:
-            overloaded_count = len(capacity_data[capacity_data['Capacity_Utilization_Percentage'] > 110]) if len(capacity_data) > 0 else 0
             st.markdown(f"""
             <div class="subobjective-box efficiency">
                 <div class="subobjective-info">
@@ -776,19 +801,16 @@ if st.session_state.current_page == 'main':
                 </div>
             </div>
             """, unsafe_allow_html=True)
-            st.metric(label="Overloaded", value=f"{overloaded_count}")
         with chart_col_cap2:
             if len(capacity_data) > 1:
                 cap_trend_data = capacity_data.groupby('Month').agg({'Capacity_Utilization_Percentage': 'mean'}).reset_index().sort_values('Month')
-                fig = create_trend_chart(cap_trend_data, 'Month', 'Capacity_Utilization_Percentage', '', '#f59e0b', height=130)
+                fig = create_sparkline(cap_trend_data, 'Month', 'Capacity_Utilization_Percentage', '#f59e0b')
                 if fig:
-                    fig.update_layout(margin=dict(l=0, r=0, t=0, b=0))
                     st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
         
         # At-Risk Employees
         chart_col_risk1, chart_col_risk2 = st.columns([3, 1], gap="small")
         with chart_col_risk1:
-            burnout_pct_val = (burnout_count / len(capacity_data) * 100) if len(capacity_data) > 0 else 0
             st.markdown(f"""
             <div class="subobjective-box cost">
                 <div class="subobjective-info">
@@ -798,20 +820,17 @@ if st.session_state.current_page == 'main':
                 </div>
             </div>
             """, unsafe_allow_html=True)
-            st.metric(label="At-Risk %", value=f"{round_value(burnout_pct_val, 'percentage'):.1f}%")
         with chart_col_risk2:
             if len(capacity_data) > 1:
                 burnout_trend_data = capacity_data[capacity_data['Burnout_Risk_Flag'] == 'Yes'].groupby('Month').size().reset_index(name='count')
                 if len(burnout_trend_data) > 0:
-                    fig = create_trend_chart(burnout_trend_data, 'Month', 'count', '', '#ef4444', height=130)
+                    fig = create_sparkline(burnout_trend_data, 'Month', 'count', '#ef4444')
                     if fig:
-                        fig.update_layout(margin=dict(l=0, r=0, t=0, b=0))
                         st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
         
         # Model Accuracy
         chart_col_model1, chart_col_model2 = st.columns([3, 1], gap="small")
         with chart_col_model1:
-            forecast_count = model_data['Month'].nunique() if len(model_data) > 0 else 0
             st.markdown(f"""
             <div class="subobjective-box quality">
                 <div class="subobjective-info">
@@ -821,13 +840,11 @@ if st.session_state.current_page == 'main':
                 </div>
             </div>
             """, unsafe_allow_html=True)
-            st.metric(label="Forecast Periods", value=f"{forecast_count}")
         with chart_col_model2:
             if len(model_data) > 1:
                 model_trend_data = model_data.groupby('Month').agg({'Forecast_Accuracy_Percentage': 'mean'}).reset_index().sort_values('Month')
-                fig = create_trend_chart(model_trend_data, 'Month', 'Forecast_Accuracy_Percentage', '', '#059669', height=130)
+                fig = create_sparkline(model_trend_data, 'Month', 'Forecast_Accuracy_Percentage', '#059669')
                 if fig:
-                    fig.update_layout(margin=dict(l=0, r=0, t=0, b=0))
                     st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
         
         st.markdown('</div>', unsafe_allow_html=True)
@@ -846,7 +863,7 @@ elif st.session_state.current_page == 'cost_efficiency':
     
     st.markdown("#### Detailed Metrics with Trends & Analysis")
     
-    # Immediate Action Insights (at the top)
+    # Action Insights
     st.markdown("### Action Insights")
     col_action1, col_action2 = st.columns([1, 1])
     
@@ -955,7 +972,7 @@ elif st.session_state.current_page == 'cost_efficiency':
     
     st.divider()
     
-    # ROW 3: Digital Workplace Index with Heatmap
+    # ROW 3: Digital Workplace Index
     st.markdown("**Digital Workplace Friction Index**")
     col1, col2 = st.columns([1, 1])
     
@@ -979,28 +996,28 @@ elif st.session_state.current_page == 'cost_efficiency':
     
     with tabs[0]:
         st.dataframe(rework_data.head(100), use_container_width=True, hide_index=True)
-        csv = rework_data.to_csv(index=False)
-        st.download_button("Download Rework Data (CSV)", data=csv, file_name="rework_data.csv", mime="text/csv", key="dl_rework")
+        csv = export_data_to_csv(rework_data)
+        st.download_button("📥 Download Rework Data (CSV)", data=csv, file_name="rework_data.csv", mime="text/csv", key="dl_rework")
     
     with tabs[1]:
         st.dataframe(auto_data.head(100), use_container_width=True, hide_index=True)
-        csv = auto_data.to_csv(index=False)
-        st.download_button("Download Automation Data (CSV)", data=csv, file_name="automation_data.csv", mime="text/csv", key="dl_auto")
+        csv = export_data_to_csv(auto_data)
+        st.download_button("📥 Download Automation Data (CSV)", data=csv, file_name="automation_data.csv", mime="text/csv", key="dl_auto")
     
     with tabs[2]:
         st.dataframe(digital_data.head(100), use_container_width=True, hide_index=True)
-        csv = digital_data.to_csv(index=False)
-        st.download_button("Download Digital Index (CSV)", data=csv, file_name="digital_index.csv", mime="text/csv", key="dl_digital")
+        csv = export_data_to_csv(digital_data)
+        st.download_button("📥 Download Digital Index (CSV)", data=csv, file_name="digital_index.csv", mime="text/csv", key="dl_digital")
     
     with tabs[3]:
         st.dataframe(work_data.head(100), use_container_width=True, hide_index=True)
-        csv = work_data.to_csv(index=False)
-        st.download_button("Download Work Models (CSV)", data=csv, file_name="work_models.csv", mime="text/csv", key="dl_work")
+        csv = export_data_to_csv(work_data)
+        st.download_button("📥 Download Work Models (CSV)", data=csv, file_name="work_models.csv", mime="text/csv", key="dl_work")
     
     with tabs[4]:
         st.dataframe(role_data.head(100), use_container_width=True, hide_index=True)
-        csv = role_data.to_csv(index=False)
-        st.download_button("Download Role Analysis (CSV)", data=csv, file_name="role_analysis.csv", mime="text/csv", key="dl_role")
+        csv = export_data_to_csv(role_data)
+        st.download_button("📥 Download Role Analysis (CSV)", data=csv, file_name="role_analysis.csv", mime="text/csv", key="dl_role")
 
 # ==================== DETAIL PAGE 2: EXECUTION & RESILIENCE ====================
 elif st.session_state.current_page == 'execution_resilience':
@@ -1163,23 +1180,23 @@ elif st.session_state.current_page == 'execution_resilience':
     
     with tabs[0]:
         st.dataframe(ftr_data.head(100), use_container_width=True, hide_index=True)
-        csv = ftr_data.to_csv(index=False)
-        st.download_button("Download FTR Data (CSV)", data=csv, file_name="ftr_data.csv", mime="text/csv", key="dl_ftr")
+        csv = export_data_to_csv(ftr_data)
+        st.download_button("📥 Download FTR Data (CSV)", data=csv, file_name="ftr_data.csv", mime="text/csv", key="dl_ftr")
     
     with tabs[1]:
         st.dataframe(adherence_data.head(100), use_container_width=True, hide_index=True)
-        csv = adherence_data.to_csv(index=False)
-        st.download_button("Download Adherence Data (CSV)", data=csv, file_name="adherence_data.csv", mime="text/csv", key="dl_adherence")
+        csv = export_data_to_csv(adherence_data)
+        st.download_button("📥 Download Adherence Data (CSV)", data=csv, file_name="adherence_data.csv", mime="text/csv", key="dl_adherence")
     
     with tabs[2]:
         st.dataframe(resilience_data.head(100), use_container_width=True, hide_index=True)
-        csv = resilience_data.to_csv(index=False)
-        st.download_button("Download Resilience Data (CSV)", data=csv, file_name="resilience_data.csv", mime="text/csv", key="dl_resilience")
+        csv = export_data_to_csv(resilience_data)
+        st.download_button("📥 Download Resilience Data (CSV)", data=csv, file_name="resilience_data.csv", mime="text/csv", key="dl_resilience")
     
     with tabs[3]:
         st.dataframe(escalation_data.head(100), use_container_width=True, hide_index=True)
-        csv = escalation_data.to_csv(index=False)
-        st.download_button("Download Escalation Data (CSV)", data=csv, file_name="escalation_data.csv", mime="text/csv", key="dl_escalation")
+        csv = export_data_to_csv(escalation_data)
+        st.download_button("📥 Download Escalation Data (CSV)", data=csv, file_name="escalation_data.csv", mime="text/csv", key="dl_escalation")
 
 # ==================== DETAIL PAGE 3: WORKFORCE & PRODUCTIVITY ====================
 elif st.session_state.current_page == 'workforce_productivity':
@@ -1346,30 +1363,30 @@ elif st.session_state.current_page == 'workforce_productivity':
     
     with tabs[0]:
         st.dataframe(capacity_data.head(100), use_container_width=True, hide_index=True)
-        csv = capacity_data.to_csv(index=False)
-        st.download_button("Download Capacity Data (CSV)", data=csv, file_name="capacity_data.csv", mime="text/csv", key="dl_capacity")
+        csv = export_data_to_csv(capacity_data)
+        st.download_button("📥 Download Capacity Data (CSV)", data=csv, file_name="capacity_data.csv", mime="text/csv", key="dl_capacity")
     
     with tabs[1]:
         st.dataframe(work_data.head(100), use_container_width=True, hide_index=True)
-        csv = work_data.to_csv(index=False)
-        st.download_button("Download Work Models (CSV)", data=csv, file_name="work_models_data.csv", mime="text/csv", key="dl_workmodels")
+        csv = export_data_to_csv(work_data)
+        st.download_button("📥 Download Work Models (CSV)", data=csv, file_name="work_models_data.csv", mime="text/csv", key="dl_workmodels")
     
     with tabs[2]:
         st.dataframe(model_data.head(100), use_container_width=True, hide_index=True)
-        csv = model_data.to_csv(index=False)
-        st.download_button("Download Model Accuracy (CSV)", data=csv, file_name="model_accuracy.csv", mime="text/csv", key="dl_model")
+        csv = export_data_to_csv(model_data)
+        st.download_button("📥 Download Model Accuracy (CSV)", data=csv, file_name="model_accuracy.csv", mime="text/csv", key="dl_model")
     
     with tabs[3]:
         st.dataframe(collab_data.head(100), use_container_width=True, hide_index=True)
-        csv = collab_data.to_csv(index=False)
-        st.download_button("Download Collaboration (CSV)", data=csv, file_name="collaboration_data.csv", mime="text/csv", key="dl_collab")
+        csv = export_data_to_csv(collab_data)
+        st.download_button("📥 Download Collaboration (CSV)", data=csv, file_name="collaboration_data.csv", mime="text/csv", key="dl_collab")
 
 # ==================== FOOTER ====================
 st.divider()
 st.markdown(f"""
     <div style="text-align: center; padding: 15px; color: #6b7280; font-size: 11px;">
-        <strong>COO Dashboard v14.0 - Professional Edition</strong> | 
-        {len(selected_months)} months | {len(dept_filter) if dept_filter else len(all_departments)} departments | 
+        <strong>COO Dashboard v15.0 - Professional Edition</strong> | 
+        {len(selected_months) if selected_months else 0} months | {len(dept_filter) if dept_filter else 0} departments | 
         Updated: {datetime.now().strftime('%Y-%m-%d %H:%M')}
     </div>
 """, unsafe_allow_html=True)
