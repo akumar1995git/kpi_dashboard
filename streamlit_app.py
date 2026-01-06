@@ -813,26 +813,6 @@ elif st.session_state.current_page == 'cost_efficiency':
     
     st.markdown("#### Detailed Metrics with Trends & Analysis")
     
-    # Immediate Action Insights (at the top)
-    st.markdown("### Action Insights")
-    col_action1, col_action2 = st.columns([1, 1])
-    
-    with col_action1:
-        st.markdown("**Immediate Attention Required:**")
-        if len(role_data) > 0:
-            top_low_value = role_data.nlargest(5, 'Opportunity_Cost_Dollars')[['Employee_ID', 'Role', 'Low_Value_Work_Percentage', 'Opportunity_Cost_Dollars']]
-            for idx, row in top_low_value.iterrows():
-                st.markdown(f'<div class="insights-box">{row["Employee_ID"]} ({row["Role"]}): {row["Low_Value_Work_Percentage"]:.1f}% low-value work - ${row["Opportunity_Cost_Dollars"]:,.0f}/month</div>', unsafe_allow_html=True)
-    
-    with col_action2:
-        st.markdown("**Top Automation Opportunities:**")
-        if len(auto_data) > 0:
-            top_auto = auto_data.nlargest(5, 'ROI_Percentage_6M')[['Process_Name', 'Time_Savings_Hours'] if 'Time_Savings_Hours' in auto_data.columns else ['Process_Name', 'Monthly_Hours_Saved']]
-            time_col = 'Time_Savings_Hours' if 'Time_Savings_Hours' in auto_data.columns else 'Monthly_Hours_Saved'
-            for idx, row in top_auto.iterrows():
-                st.markdown(f'<div class="recommendation-box">{row["Process_Name"]}: {row[time_col]:.0f} hours/month potential savings</div>', unsafe_allow_html=True)
-    
-    st.divider()
     
     # ROW 1: Rework Cost Analysis
     st.markdown("**Rework Cost Analysis**")
@@ -952,6 +932,29 @@ elif st.session_state.current_page == 'cost_efficiency':
             fig = create_heatmap(digital_data, 'Month', 'Department', 'Friction_Index_Score', 'Friction Index by Department & Month')
             if fig:
                 st.plotly_chart(fig, use_container_width=True)
+
+    st.divider()
+
+# Immediate Action Insights (at the top)
+    st.markdown("### Action Insights")
+    col_action1, col_action2 = st.columns([1, 1])
+    
+    with col_action1:
+        st.markdown("**Immediate Attention Required:**")
+        if len(role_data) > 0:
+            top_low_value = role_data.nlargest(5, 'Opportunity_Cost_Dollars')[['Employee_ID', 'Role', 'Low_Value_Work_Percentage', 'Opportunity_Cost_Dollars']]
+            for idx, row in top_low_value.iterrows():
+                st.markdown(f'<div class="insights-box">{row["Employee_ID"]} ({row["Role"]}): {row["Low_Value_Work_Percentage"]:.1f}% low-value work - ${row["Opportunity_Cost_Dollars"]:,.0f}/month</div>', unsafe_allow_html=True)
+    
+    with col_action2:
+        st.markdown("**Top Automation Opportunities:**")
+        if len(auto_data) > 0:
+            top_auto = auto_data.nlargest(5, 'ROI_Percentage_6M')[['Process_Name', 'Time_Savings_Hours'] if 'Time_Savings_Hours' in auto_data.columns else ['Process_Name', 'Monthly_Hours_Saved']]
+            time_col = 'Time_Savings_Hours' if 'Time_Savings_Hours' in auto_data.columns else 'Monthly_Hours_Saved'
+            for idx, row in top_auto.iterrows():
+                st.markdown(f'<div class="recommendation-box">{row["Process_Name"]}: {row[time_col]:.0f} hours/month potential savings</div>', unsafe_allow_html=True)
+    
+    st.divider()
     
     st.markdown("---")
     st.markdown("#### Detailed Data & Export")
@@ -1177,7 +1180,7 @@ elif st.session_state.current_page == 'workforce_productivity':
     
     # ROW 1: Output & Productivity
     st.markdown("**Output & Productivity per FTE**")
-    col1, col2 = st.columns([1, 1])
+    col1, col2, col3 = st.columns([1, 1, 1])
     
     with col1:
         st.markdown("**KPI Card**")
@@ -1210,7 +1213,7 @@ elif st.session_state.current_page == 'workforce_productivity':
     
     # ROW 2: Capacity Utilization
     st.markdown("**Capacity Utilization & Workload**")
-    col1, col2 = st.columns([1, 1])
+    col1, col2, col3 = st.columns([1, 1, 1])
     
     with col1:
         st.markdown("**Dial Chart**")
@@ -1278,7 +1281,7 @@ elif st.session_state.current_page == 'workforce_productivity':
     
     # ROW 4: Employee Health
     st.markdown("**Employee Health & At-Risk Employees**")
-    col1, col2 = st.columns([1, 1])
+    col1, col2, col3 = st.columns([1, 1, 1])
     
     with col1:
         st.markdown("**Health Summary**")
