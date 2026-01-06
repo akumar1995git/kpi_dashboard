@@ -185,26 +185,33 @@ st.markdown("""
         color: #6b7280;
     }
 
-    /* Insights Box */
+    /* Insights Box - Without Emojis */
     .insights-box {
-        background: #f0f9ff;
-        border-left: 4px solid #0891b2;
-        padding: 15px;
+        background: #fef3c7;
+        border-left: 4px solid #f59e0b;
+        padding: 12px;
         border-radius: 6px;
-        margin: 15px 0;
-        font-size: 13px;
-        color: #0c4a6e;
+        margin: 12px 0;
+        font-size: 12px;
+        color: #92400e;
+        font-weight: 500;
     }
 
     .recommendation-box {
-        background: #f7fee7;
-        border-left: 4px solid #65a30d;
-        padding: 15px;
+        background: #fee2e2;
+        border-left: 4px solid #ef4444;
+        padding: 12px;
         border-radius: 6px;
-        margin: 15px 0;
-        font-size: 13px;
-        color: #3f6212;
+        margin: 12px 0;
+        font-size: 12px;
+        color: #991b1b;
+        font-weight: 500;
     }
+
+    /* Data Table Styling */
+    .at-risk-row { background-color: #fecaca; }
+    .warning-row { background-color: #fef3c7; }
+    .normal-row { background-color: #dcfce7; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -271,7 +278,7 @@ def filter_data(df, month_col='Month', dept_col='Department'):
         result = result[result[dept_col].isin(dept_filter)]
     return result
 
-def create_trend_chart(df, x_col, y_col, title, color='#1e40af', height=320):
+def create_trend_chart(df, x_col, y_col, title, color='#1e40af', height=280):
     """Create a trend line chart"""
     if len(df) < 2:
         return None
@@ -438,6 +445,24 @@ def show_navigation():
             st.session_state.current_page = 'workforce_productivity'
             st.rerun()
 
+def highlight_row_color(val, metric_type='percentage'):
+    """Return color based on value thresholds"""
+    if metric_type == 'percentage':
+        if val >= 80:
+            return 'background-color: #dcfce7'  # Green - Good
+        elif val >= 60:
+            return 'background-color: #fef3c7'  # Yellow - Warning
+        else:
+            return 'background-color: #fecaca'  # Red - At Risk
+    elif metric_type == 'capacity':
+        if 85 <= val <= 100:
+            return 'background-color: #dcfce7'  # Green - Optimal
+        elif val > 100 or val < 85:
+            return 'background-color: #fef3c7'  # Yellow - Concerning
+        else:
+            return 'background-color: #fecaca'  # Red - Critical
+    return ''
+
 # ==================== HEADER ====================
 st.markdown("""
     <div style="background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%); 
@@ -463,25 +488,25 @@ if st.session_state.current_page == 'main':
         
         rework_pct = rework_data['Rework_Cost_Percentage'].mean() if len(rework_data) > 0 else 0
         auto_roi = auto_data['ROI_Percentage_6M'].mean() if len(auto_data) > 0 else 0
-        automation_coverage = (auto_data.shape[0] / max(data['Automation_ROI'].shape[0], 1)) * 100
         friction = digital_data['Friction_Index_Score'].mean() if len(digital_data) > 0 else 0
+        role_reality = role_data['Low_Value_Work_Percentage'].mean() if len(role_data) > 0 else 0
         
         # Calculate MoM changes
         rework_val, rework_change = get_month_over_month_change(rework_data, 'Rework_Cost_Percentage')
         auto_val, auto_change = get_month_over_month_change(auto_data, 'ROI_Percentage_6M')
         friction_val, friction_change = get_month_over_month_change(digital_data, 'Friction_Index_Score')
-        auto_cov_val, auto_cov_change = get_month_over_month_change(auto_data.groupby('Month').size().reset_index(name='count'), 'count')
+        role_val, role_change = get_month_over_month_change(role_data, 'Low_Value_Work_Percentage')
         
         rework_trend = f"{round_value(rework_change, 'percentage'):+.1f}% vs last month" if rework_change is not None else "No data"
         auto_trend = f"{round_value(auto_change, 'percentage'):+.1f}% vs last month" if auto_change is not None else "No data"
         friction_trend = f"{round_value(friction_change, 'percentage'):+.1f}% vs last month" if friction_change is not None else "No data"
-        auto_cov_trend = f"{round_value(auto_cov_change, 'percentage'):+.1f}% vs last month" if auto_cov_change is not None else "No data"
+        role_trend = f"{round_value(role_change, 'percentage'):+.1f}% vs last month" if role_change is not None else "No data"
         
-        if st.button("💰 Cost & Efficiency", key="btn_cost", use_container_width=True, help="ROI, Rework, Automation, Digital Readiness"):
+        if st.button("Cost & Efficiency", key="btn_cost", use_container_width=True, help="ROI, Rework, Digital Readiness"):
             st.session_state.current_page = 'cost_efficiency'
             st.rerun()
         
-        st.markdown('<div class="objective-card"><div class="objective-signal">Monitor: ROI + Rework + Automation Coverage</div>', unsafe_allow_html=True)
+        st.markdown('<div class="objective-card"><div class="objective-signal">Monitor: ROI + Rework + Low-Value Work Reduction</div>', unsafe_allow_html=True)
         
         # Rework Cost
         chart_col_rework1, chart_col_rework2 = st.columns([3, 1], gap="small")
@@ -489,7 +514,7 @@ if st.session_state.current_page == 'main':
             st.markdown(f"""
             <div class="subobjective-box cost">
                 <div class="subobjective-info">
-                    <div class="subobjective-title">Rework Cost %</div>
+                    <div class="subobjective-title">Rework Cost Percentage</div>
                     <div class="subobjective-value">{round_value(rework_pct, 'percentage'):.1f}%</div>
                     <div class="subobjective-trend"><span class="trend-down">{rework_trend}</span></div>
                 </div>
@@ -521,35 +546,24 @@ if st.session_state.current_page == 'main':
                 if fig:
                     st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
         
-        # Automation Coverage with Trend Chart
-        if len(auto_data) > 1:
-            cov_col1, cov_col2 = st.columns([1, 1], gap="small")
-            with cov_col1:
-                st.markdown(f"""
-                <div class="subobjective-box efficiency">
-                    <div class="subobjective-info">
-                        <div class="subobjective-title">Automation Coverage</div>
-                        <div class="subobjective-value">{round_value(automation_coverage, 'percentage'):.0f}%</div>
-                        <div class="subobjective-trend">{auto_cov_trend}</div>
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
-            with cov_col2:
-                auto_cov_data = auto_data.groupby('Month').size().reset_index(name='count').sort_values('Month')
-                if len(auto_cov_data) > 1:
-                    fig = create_trend_chart(auto_cov_data, 'Month', 'count', 'Coverage Trend', '#059669', height=200)
-                    if fig:
-                        st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
-        else:
+        # Low-Value Work Percentage (replaces Automation Coverage)
+        chart_col_lvw1, chart_col_lvw2 = st.columns([3, 1], gap="small")
+        with chart_col_lvw1:
             st.markdown(f"""
-            <div class="subobjective-box efficiency">
+            <div class="subobjective-box cost">
                 <div class="subobjective-info">
-                    <div class="subobjective-title">Automation Coverage</div>
-                    <div class="subobjective-value">{round_value(automation_coverage, 'percentage'):.0f}%</div>
-                    <div class="subobjective-trend">Process automation</div>
+                    <div class="subobjective-title">Low-Value Work Percentage</div>
+                    <div class="subobjective-value">{round_value(role_reality, 'percentage'):.1f}%</div>
+                    <div class="subobjective-trend"><span class="trend-down">{role_trend}</span></div>
                 </div>
             </div>
             """, unsafe_allow_html=True)
+        with chart_col_lvw2:
+            if len(role_data) > 1:
+                lvw_trend_data = role_data.groupby('Month').agg({'Low_Value_Work_Percentage': 'mean'}).reset_index().sort_values('Month')
+                fig = create_sparkline(lvw_trend_data, 'Month', 'Low_Value_Work_Percentage', '#ef4444')
+                if fig:
+                    st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
         
         # Digital Friction
         chart_col_fric1, chart_col_fric2 = st.columns([3, 1], gap="small")
@@ -595,7 +609,7 @@ if st.session_state.current_page == 'main':
         res_trend = f"{round_value(res_change, 'percentage'):+.1f}% vs last month" if res_change is not None else "No data"
         esc_trend = f"{round_value(esc_change, 'percentage'):+.1f}% vs last month" if esc_change is not None else "No data"
         
-        if st.button("✅ Execution & Resilience", key="btn_execution", use_container_width=True, help="FTR, Adherence, Resilience, Exceptions"):
+        if st.button("Execution & Resilience", key="btn_execution", use_container_width=True, help="FTR, Adherence, Resilience, Exceptions"):
             st.session_state.current_page = 'execution_resilience'
             st.rerun()
         
@@ -607,7 +621,7 @@ if st.session_state.current_page == 'main':
             st.markdown(f"""
             <div class="subobjective-box quality">
                 <div class="subobjective-info">
-                    <div class="subobjective-title">First-Time-Right (FTR) Rate</div>
+                    <div class="subobjective-title">First-Time-Right Rate</div>
                     <div class="subobjective-value">{round_value(ftr_rate, 'percentage'):.1f}%</div>
                     <div class="subobjective-trend"><span class="trend-up">{ftr_trend}</span></div>
                 </div>
@@ -664,7 +678,7 @@ if st.session_state.current_page == 'main':
             st.markdown(f"""
             <div class="subobjective-box cost">
                 <div class="subobjective-info">
-                    <div class="subobjective-title">Escalations & Exceptions</div>
+                    <div class="subobjective-title">Escalations and Exceptions</div>
                     <div class="subobjective-value">{round_value(escalations, 'whole'):.0f}</div>
                     <div class="subobjective-trend"><span class="trend-down">{esc_trend}</span></div>
                 </div>
@@ -694,13 +708,12 @@ if st.session_state.current_page == 'main':
         cap_val, cap_change = get_month_over_month_change(capacity_data, 'Capacity_Utilization_Percentage')
         out_val, out_change = get_month_over_month_change(work_data, 'Output_Per_Hour')
         model_val, model_change = get_month_over_month_change(model_data, 'Forecast_Accuracy_Percentage')
-        burnout_change_val = None
         
         cap_trend = f"{round_value(cap_change, 'percentage'):+.1f}% vs last month" if cap_change is not None else "No data"
         out_trend = f"{round_value(out_change, 'percentage'):+.1f}% vs last month" if out_change is not None else "No data"
         model_trend = f"{round_value(model_change, 'percentage'):+.1f}% vs last month" if model_change is not None else "No data"
         
-        if st.button("👥 Workforce & Productivity", key="btn_workforce", use_container_width=True, help="Output, Capacity, Health, Model Accuracy"):
+        if st.button("Workforce and Productivity", key="btn_workforce", use_container_width=True, help="Output, Capacity, Health, Model Accuracy"):
             st.session_state.current_page = 'workforce_productivity'
             st.rerun()
         
@@ -759,9 +772,8 @@ if st.session_state.current_page == 'main':
         with chart_col_risk2:
             if len(capacity_data) > 1:
                 burnout_trend_data = capacity_data[capacity_data['Burnout_Risk_Flag'] == 'Yes'].groupby('Month').size().reset_index(name='count')
-                burnout_trend_data = burnout_trend_data.rename(columns={'Month': 'Month', 'count': 'Count'})
                 if len(burnout_trend_data) > 0:
-                    fig = create_sparkline(burnout_trend_data, 'Month', 'Count', '#ef4444')
+                    fig = create_sparkline(burnout_trend_data, 'Month', 'count', '#ef4444')
                     if fig:
                         st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
         
@@ -799,6 +811,27 @@ elif st.session_state.current_page == 'cost_efficiency':
     work_data = filter_data(data['Work_Models'])
     
     st.markdown("#### Detailed Metrics with Trends & Analysis")
+    
+    # Immediate Action Insights (at the top)
+    st.markdown("### Action Insights")
+    col_action1, col_action2 = st.columns([1, 1])
+    
+    with col_action1:
+        st.markdown("**Immediate Attention Required:**")
+        if len(role_data) > 0:
+            top_low_value = role_data.nlargest(5, 'Opportunity_Cost_Dollars')[['Employee_ID', 'Role', 'Low_Value_Work_Percentage', 'Opportunity_Cost_Dollars']]
+            for idx, row in top_low_value.iterrows():
+                st.markdown(f'<div class="insights-box">{row["Employee_ID"]} ({row["Role"]}): {row["Low_Value_Work_Percentage"]:.1f}% low-value work - ${row["Opportunity_Cost_Dollars"]:,.0f}/month</div>', unsafe_allow_html=True)
+    
+    with col_action2:
+        st.markdown("**Top Automation Opportunities:**")
+        if len(auto_data) > 0:
+            top_auto = auto_data.nlargest(5, 'ROI_Percentage_6M')[['Process_Name', 'Time_Savings_Hours'] if 'Time_Savings_Hours' in auto_data.columns else ['Process_Name', 'Monthly_Hours_Saved']]
+            time_col = 'Time_Savings_Hours' if 'Time_Savings_Hours' in auto_data.columns else 'Monthly_Hours_Saved'
+            for idx, row in top_auto.iterrows():
+                st.markdown(f'<div class="recommendation-box">{row["Process_Name"]}: {row[time_col]:.0f} hours/month potential savings</div>', unsafe_allow_html=True)
+    
+    st.divider()
     
     # ROW 1: Rework Cost Analysis
     st.markdown("**Rework Cost Analysis**")
@@ -843,10 +876,6 @@ elif st.session_state.current_page == 'cost_efficiency':
             fig.update_layout(height=280, showlegend=False, plot_bgcolor="rgba(0,0,0,0)", hovermode='y unified')
             st.plotly_chart(fig, use_container_width=True)
     
-    # Insights
-    st.markdown('<div class="insights-box"><strong>💡 Insight:</strong> Rework costs are highest in [Top Process]. Focus process improvement efforts here for maximum ROI.</div>', unsafe_allow_html=True)
-    st.markdown('<div class="recommendation-box"><strong>✅ Recommendation:</strong> Implement quality gates at critical process steps and increase FTR training to reduce rework costs by 20%.</div>', unsafe_allow_html=True)
-    
     st.divider()
     
     # ROW 2: Automation ROI Analysis
@@ -856,7 +885,6 @@ elif st.session_state.current_page == 'cost_efficiency':
     with col1:
         st.markdown("**KPI Card**")
         auto_roi = auto_data['ROI_Percentage_6M'].mean()
-        # Check for time savings column - try multiple names
         time_savings = 0
         if 'Time_Savings_Hours' in auto_data.columns:
             time_savings = auto_data['Time_Savings_Hours'].sum()
@@ -867,54 +895,21 @@ elif st.session_state.current_page == 'cost_efficiency':
         st.metric(label="Time Savings", value=f"{round_value(time_savings, 'hours'):,.1f} hrs", delta="+450 hrs")
     
     with col2:
-        st.markdown("**ROI & Savings Trend**")
+        st.markdown("**ROI Trend**")
         if len(auto_data) > 0:
-            agg_dict = {'ROI_Percentage_6M': 'mean'}
-            if 'Time_Savings_Hours' in auto_data.columns:
-                agg_dict['Time_Savings_Hours'] = 'sum'
-            elif 'Monthly_Hours_Saved' in auto_data.columns:
-                agg_dict['Monthly_Hours_Saved'] = 'sum'
-            
-            auto_trend = auto_data.groupby('Month').agg(agg_dict).reset_index().sort_values('Month')
+            auto_trend = auto_data.groupby('Month').agg({'ROI_Percentage_6M': 'mean'}).reset_index().sort_values('Month')
             
             if len(auto_trend) > 1:
-                fig = go.Figure()
-                fig.add_trace(go.Scatter(
-                    x=auto_trend['Month'], y=auto_trend['ROI_Percentage_6M'],
-                    mode='lines+markers', name='ROI %', line=dict(color='#059669', width=3),
-                    marker=dict(size=8), yaxis='y1'
-                ))
-                time_col = 'Time_Savings_Hours' if 'Time_Savings_Hours' in auto_trend.columns else 'Monthly_Hours_Saved'
-                if time_col in auto_trend.columns:
-                    fig.add_trace(go.Scatter(
-                        x=auto_trend['Month'], y=auto_trend[time_col],
-                        mode='lines+markers', name='Time Savings (hrs)', line=dict(color='#f59e0b', width=3),
-                        marker=dict(size=8), yaxis='y2'
-                    ))
-                    fig.update_layout(
-                        title='ROI & Time Savings Trend', height=320, hovermode='x unified',
-                        yaxis=dict(title='ROI %', titlefont=dict(color='#059669'), tickfont=dict(color='#059669')),
-                        yaxis2=dict(title='Hours', titlefont=dict(color='#f59e0b'), tickfont=dict(color='#f59e0b'), overlaying='y', side='right'),
-                        plot_bgcolor="rgba(0,0,0,0)", margin=dict(l=0, r=0, t=30, b=0)
-                    )
-                else:
-                    fig.update_layout(
-                        title='ROI Trend', height=320, hovermode='x unified',
-                        plot_bgcolor="rgba(0,0,0,0)", margin=dict(l=0, r=0, t=30, b=0)
-                    )
+                fig = create_trend_chart(auto_trend, 'Month', 'ROI_Percentage_6M', 'ROI Trend', '#059669', height=280)
                 st.plotly_chart(fig, use_container_width=True)
     
     with col3:
         st.markdown("**ROI by Task**")
         if len(auto_data) > 0:
             if 'Task_Type' in auto_data.columns:
-                task_roi = auto_data.groupby('Task_Type').agg({
-                    'ROI_Percentage_6M': 'mean'
-                }).sort_values('ROI_Percentage_6M', ascending=False).head(6)
+                task_roi = auto_data.groupby('Task_Type').agg({'ROI_Percentage_6M': 'mean'}).sort_values('ROI_Percentage_6M', ascending=False).head(6)
             else:
-                task_roi = auto_data.groupby('Process_Name').agg({
-                    'ROI_Percentage_6M': 'mean'
-                }).sort_values('ROI_Percentage_6M', ascending=False).head(6)
+                task_roi = auto_data.groupby('Process_Name').agg({'ROI_Percentage_6M': 'mean'}).sort_values('ROI_Percentage_6M', ascending=False).head(6)
             
             fig = go.Figure(data=[
                 go.Bar(y=task_roi.index, x=task_roi['ROI_Percentage_6M'],
@@ -923,9 +918,6 @@ elif st.session_state.current_page == 'cost_efficiency':
             ])
             fig.update_layout(height=280, showlegend=False, plot_bgcolor="rgba(0,0,0,0)", hovermode='y unified')
             st.plotly_chart(fig, use_container_width=True)
-    
-    st.markdown('<div class="insights-box"><strong>💡 Insight:</strong> High-ROI automation opportunities exist. Scale proven automation patterns to other processes.</div>', unsafe_allow_html=True)
-    st.markdown('<div class="recommendation-box"><strong>✅ Recommendation:</strong> Prioritize automation of repeatable tasks with >150% ROI for maximum efficiency gains.</div>', unsafe_allow_html=True)
     
     st.divider()
     
@@ -945,97 +937,6 @@ elif st.session_state.current_page == 'cost_efficiency':
             fig = create_heatmap(digital_data, 'Month', 'Department', 'Friction_Index_Score', 'Friction Index by Department & Month')
             if fig:
                 st.plotly_chart(fig, use_container_width=True)
-    
-    st.markdown("**Friction by Department & Process**")
-    col1, col2 = st.columns([1, 1])
-    
-    with col1:
-        if len(digital_data) > 0:
-            if 'Process' in digital_data.columns:
-                dept_proc_friction = digital_data.groupby(['Department', 'Process']).agg({
-                    'Friction_Index_Score': 'mean'
-                }).reset_index().sort_values('Friction_Index_Score', ascending=False).head(8)
-                dept_proc_friction['Label'] = dept_proc_friction['Department'] + ' - ' + dept_proc_friction['Process']
-                friction_data = dept_proc_friction
-            else:
-                dept_friction = digital_data.groupby('Department').agg({
-                    'Friction_Index_Score': 'mean'
-                }).sort_values('Friction_Index_Score', ascending=False)
-                friction_data = dept_friction.reset_index()
-                friction_data['Label'] = friction_data['Department']
-            
-            fig = go.Figure(data=[
-                go.Bar(y=friction_data['Label'] if 'Label' in friction_data.columns else friction_data['Department'],
-                       x=friction_data['Friction_Index_Score'],
-                       orientation='h', marker_color='#f59e0b', text=[f"{x:.1f}" for x in friction_data['Friction_Index_Score']],
-                       textposition='outside')
-            ])
-            fig.update_layout(height=300, showlegend=False, plot_bgcolor="rgba(0,0,0,0)", hovermode='y unified')
-            st.plotly_chart(fig, use_container_width=True)
-    
-    with col2:
-        st.markdown("**Trend Over Time**")
-        if len(digital_data) > 0:
-            friction_trend = digital_data.groupby('Month').agg({
-                'Friction_Index_Score': 'mean'
-            }).reset_index().sort_values('Month')
-            
-            if len(friction_trend) > 1:
-                fig = create_trend_chart(friction_trend, 'Month', 'Friction_Index_Score', 'Friction Trend', '#f59e0b')
-                st.plotly_chart(fig, use_container_width=True)
-    
-    st.markdown('<div class="insights-box"><strong>💡 Insight:</strong> Digital friction is highest in [High Friction Area]. Employee tool fatigue and poor system integration are key drivers.</div>', unsafe_allow_html=True)
-    st.markdown('<div class="recommendation-box"><strong>✅ Recommendation:</strong> Consolidate tools and create API integrations to reduce friction points by 30%.</div>', unsafe_allow_html=True)
-    
-    st.divider()
-    
-    # ROW 4: Work Model & Role Analysis
-    st.markdown("**Work Model Effectiveness & Low-Value Work**")
-    col1, col2, col3 = st.columns([1, 1, 1])
-    
-    with col1:
-        st.markdown("**Work Model Output**")
-        if len(work_data) > 0:
-            model_output = work_data.groupby('Work_Model').agg({
-                'Output_Per_Hour': 'mean'
-            })
-            
-            fig = go.Figure(data=[
-                go.Bar(x=model_output.index, y=model_output['Output_Per_Hour'],
-                       marker_color=['#059669' if x == model_output['Output_Per_Hour'].max() else '#94a3b8' 
-                                    for x in model_output['Output_Per_Hour']])
-            ])
-            fig.update_layout(height=280, showlegend=False, plot_bgcolor="rgba(0,0,0,0)")
-            st.plotly_chart(fig, use_container_width=True)
-    
-    with col2:
-        st.markdown("**Low-Value Work %**")
-        if len(role_data) > 0:
-            low_value_trend = role_data.groupby('Month').agg({
-                'Low_Value_Work_Percentage': 'mean'
-            }).reset_index().sort_values('Month')
-            
-            if len(low_value_trend) > 1:
-                fig = create_trend_chart(low_value_trend, 'Month', 'Low_Value_Work_Percentage', 'Low-Value Work Trend', '#dc2626')
-                st.plotly_chart(fig, use_container_width=True)
-    
-    with col3:
-        st.markdown("**Opportunity Cost by Role**")
-        if len(role_data) > 0:
-            role_cost = role_data.groupby('Role').agg({
-                'Opportunity_Cost_Dollars': 'sum'
-            }).sort_values('Opportunity_Cost_Dollars', ascending=False).head(6)
-            
-            fig = go.Figure(data=[
-                go.Bar(y=role_cost.index, x=role_cost['Opportunity_Cost_Dollars'],
-                       orientation='h', marker_color='#dc2626', text=[f"${x:,.0f}" for x in role_cost['Opportunity_Cost_Dollars']],
-                       textposition='outside')
-            ])
-            fig.update_layout(height=280, showlegend=False, plot_bgcolor="rgba(0,0,0,0)", hovermode='y unified')
-            st.plotly_chart(fig, use_container_width=True)
-    
-    st.markdown('<div class="insights-box"><strong>💡 Insight:</strong> Low-value work consumes [X]% of capacity. Redirecting this effort could free up [Y] FTE.</div>', unsafe_allow_html=True)
-    st.markdown('<div class="recommendation-box"><strong>✅ Recommendation:</strong> Automate low-value tasks and upskill team on high-impact activities.</div>', unsafe_allow_html=True)
     
     st.markdown("---")
     st.markdown("#### Detailed Data & Export")
@@ -1080,31 +981,28 @@ elif st.session_state.current_page == 'execution_resilience':
     
     st.markdown("#### Detailed Metrics with Trends & Analysis")
     
-    # ROW 1: FTR Rate with Heatmap
+    # ROW 1: FTR Rate
     st.markdown("**First-Time-Right (FTR) Rate**")
-    col1, col2 = st.columns([1, 1])
+    col1, col2, col3 = st.columns([1, 1, 1])
     
     with col1:
         st.markdown("**KPI Card**")
         ftr_rate = ftr_data['FTR_Rate_Percentage'].mean()
         st.metric(label="FTR Rate", value=f"{round_value(ftr_rate, 'percentage'):.1f}%", delta="+2.1%")
-        
+    
+    with col2:
         st.markdown("**Trend Over Time**")
         if len(ftr_data) > 0:
-            ftr_trend = ftr_data.groupby('Month').agg({
-                'FTR_Rate_Percentage': 'mean'
-            }).reset_index().sort_values('Month')
+            ftr_trend = ftr_data.groupby('Month').agg({'FTR_Rate_Percentage': 'mean'}).reset_index().sort_values('Month')
             
             if len(ftr_trend) > 1:
                 fig = create_trend_chart(ftr_trend, 'Month', 'FTR_Rate_Percentage', 'FTR Rate Trend', '#059669')
                 st.plotly_chart(fig, use_container_width=True)
     
-    with col2:
+    with col3:
         st.markdown("**By Department**")
         if len(ftr_data) > 0:
-            dept_ftr = ftr_data.groupby('Department').agg({
-                'FTR_Rate_Percentage': 'mean'
-            }).sort_values('FTR_Rate_Percentage', ascending=False)
+            dept_ftr = ftr_data.groupby('Department').agg({'FTR_Rate_Percentage': 'mean'}).sort_values('FTR_Rate_Percentage', ascending=False)
             
             fig = go.Figure(data=[
                 go.Bar(y=dept_ftr.index, x=dept_ftr['FTR_Rate_Percentage'],
@@ -1114,44 +1012,36 @@ elif st.session_state.current_page == 'execution_resilience':
             fig.update_layout(height=280, showlegend=False, plot_bgcolor="rgba(0,0,0,0)", hovermode='y unified')
             st.plotly_chart(fig, use_container_width=True)
     
-    st.markdown('<div class="insights-box"><strong>💡 Insight:</strong> FTR rates vary significantly by department. [Lower performing dept] needs targeted quality improvement.</div>', unsafe_allow_html=True)
-    st.markdown('<div class="recommendation-box"><strong>✅ Recommendation:</strong> Implement peer learning programs between high and low performing teams.</div>', unsafe_allow_html=True)
-    
     st.divider()
     
-    # ROW 2: Resilience Score with Heatmap
+    # ROW 2: Resilience Score
     st.markdown("**Operational Resilience Score**")
-    col1, col2 = st.columns([1, 1])
+    col1, col2, col3 = st.columns([1, 1, 1])
     
     with col1:
         st.markdown("**Gauge Chart**")
         resilience = resilience_data['Resilience_Score'].mean()
         fig = create_gauge_chart(resilience, 10, 'Resilience Score', '#0891b2', size='small')
         st.plotly_chart(fig, use_container_width=True)
-        
+    
+    with col2:
         st.markdown("**Trend Over Time**")
         if len(resilience_data) > 0:
-            resilience_trend = resilience_data.groupby('Month').agg({
-                'Resilience_Score': 'mean'
-            }).reset_index().sort_values('Month')
+            resilience_trend = resilience_data.groupby('Month').agg({'Resilience_Score': 'mean'}).reset_index().sort_values('Month')
             
             if len(resilience_trend) > 1:
                 fig = create_trend_chart(resilience_trend, 'Month', 'Resilience_Score', 'Resilience Trend', '#0891b2')
                 st.plotly_chart(fig, use_container_width=True)
     
-    with col2:
+    with col3:
         st.markdown("**Risk by Task & Department**")
         if len(resilience_data) > 0:
             if 'Department' in resilience_data.columns:
-                task_dept_risk = resilience_data.groupby(['Critical_Task', 'Department']).agg({
-                    'Risk_Percentage': 'mean'
-                }).reset_index().sort_values('Risk_Percentage', ascending=False).head(8)
+                task_dept_risk = resilience_data.groupby(['Critical_Task', 'Department']).agg({'Risk_Percentage': 'mean'}).reset_index().sort_values('Risk_Percentage', ascending=False).head(8)
                 task_dept_risk['Label'] = task_dept_risk['Critical_Task'] + ' - ' + task_dept_risk['Department']
                 risk_data = task_dept_risk
             else:
-                task_risk = resilience_data.groupby('Critical_Task').agg({
-                    'Risk_Percentage': 'mean'
-                }).sort_values('Risk_Percentage', ascending=False).head(6)
+                task_risk = resilience_data.groupby('Critical_Task').agg({'Risk_Percentage': 'mean'}).sort_values('Risk_Percentage', ascending=False).head(6)
                 risk_data = task_risk.reset_index()
                 risk_data['Label'] = risk_data['Critical_Task']
             
@@ -1164,25 +1054,21 @@ elif st.session_state.current_page == 'execution_resilience':
             fig.update_layout(height=280, showlegend=False, plot_bgcolor="rgba(0,0,0,0)", hovermode='y unified')
             st.plotly_chart(fig, use_container_width=True)
     
-    st.markdown('<div class="insights-box"><strong>💡 Insight:</strong> Critical tasks have moderate risk exposure. Build redundancy in key processes.</div>', unsafe_allow_html=True)
-    st.markdown('<div class="recommendation-box"><strong>✅ Recommendation:</strong> Create cross-training programs for critical functions and backup procedures.</div>', unsafe_allow_html=True)
-    
     st.divider()
     
-    # ROW 3: Process Adherence with Heatmap
+    # ROW 3: Process Adherence
     st.markdown("**Process Adherence Rate**")
-    col1, col2 = st.columns([1, 1])
+    col1, col2, col3 = st.columns([1, 1, 1])
     
     with col1:
         st.markdown("**KPI Card**")
         adherence = adherence_data['Adherence_Rate_Percentage'].mean()
         st.metric(label="Adherence Rate", value=f"{round_value(adherence, 'percentage'):.1f}%", delta="-1.2%")
-        
+    
+    with col2:
         st.markdown("**By Department**")
         if len(adherence_data) > 0:
-            dept_adherence = adherence_data.groupby('Department').agg({
-                'Adherence_Rate_Percentage': 'mean'
-            }).sort_values('Adherence_Rate_Percentage', ascending=False)
+            dept_adherence = adherence_data.groupby('Department').agg({'Adherence_Rate_Percentage': 'mean'}).sort_values('Adherence_Rate_Percentage', ascending=False)
             
             fig = go.Figure(data=[
                 go.Bar(y=dept_adherence.index, x=dept_adherence['Adherence_Rate_Percentage'],
@@ -1192,15 +1078,12 @@ elif st.session_state.current_page == 'execution_resilience':
             fig.update_layout(height=280, showlegend=False, plot_bgcolor="rgba(0,0,0,0)", hovermode='y unified')
             st.plotly_chart(fig, use_container_width=True)
     
-    with col2:
-        st.markdown("**Adherence Heatmap (Department vs Month)**")
+    with col3:
+        st.markdown("**Adherence Heatmap**")
         if len(adherence_data) > 0 and 'Department' in adherence_data.columns:
-            fig = create_heatmap(adherence_data, 'Month', 'Department', 'Adherence_Rate_Percentage', 'Adherence Rate by Department & Month')
+            fig = create_heatmap(adherence_data, 'Month', 'Department', 'Adherence_Rate_Percentage', 'Adherence Rate by Department')
             if fig:
                 st.plotly_chart(fig, use_container_width=True)
-    
-    st.markdown('<div class="insights-box"><strong>💡 Insight:</strong> Process adherence is declining. Retraining and process clarity improvements needed.</div>', unsafe_allow_html=True)
-    st.markdown('<div class="recommendation-box"><strong>✅ Recommendation:</strong> Conduct process audit and implement visual management to improve adherence to 95%+.</div>', unsafe_allow_html=True)
     
     st.divider()
     
@@ -1216,9 +1099,7 @@ elif st.session_state.current_page == 'execution_resilience':
     with col2:
         st.markdown("**By Process**")
         if len(escalation_data) > 0:
-            process_esc = escalation_data.groupby('Process').agg({
-                'Step_Exception_Count': 'sum'
-            }).sort_values('Step_Exception_Count', ascending=False).head(6)
+            process_esc = escalation_data.groupby('Process').agg({'Step_Exception_Count': 'sum'}).sort_values('Step_Exception_Count', ascending=False).head(6)
             
             fig = go.Figure(data=[
                 go.Bar(y=process_esc.index, x=process_esc['Step_Exception_Count'],
@@ -1231,9 +1112,7 @@ elif st.session_state.current_page == 'execution_resilience':
     with col3:
         st.markdown("**By Department**")
         if len(escalation_data) > 0:
-            dept_esc = escalation_data.groupby('Department').agg({
-                'Step_Exception_Count': 'sum'
-            }).sort_values('Step_Exception_Count', ascending=False)
+            dept_esc = escalation_data.groupby('Department').agg({'Step_Exception_Count': 'sum'}).sort_values('Step_Exception_Count', ascending=False)
             
             fig = go.Figure(data=[
                 go.Bar(y=dept_esc.index, x=dept_esc['Step_Exception_Count'],
@@ -1242,9 +1121,6 @@ elif st.session_state.current_page == 'execution_resilience':
             ])
             fig.update_layout(height=280, showlegend=False, plot_bgcolor="rgba(0,0,0,0)", hovermode='y unified')
             st.plotly_chart(fig, use_container_width=True)
-    
-    st.markdown('<div class="insights-box"><strong>💡 Insight:</strong> Escalations are increasing. Root cause analysis shows [Primary Cause].</div>', unsafe_allow_html=True)
-    st.markdown('<div class="recommendation-box"><strong>✅ Recommendation:</strong> Implement empowerment guidelines to reduce escalations by 25%.</div>', unsafe_allow_html=True)
     
     st.markdown("---")
     st.markdown("#### Detailed Data & Export")
@@ -1295,9 +1171,7 @@ elif st.session_state.current_page == 'workforce_productivity':
         
         st.markdown("**By Department**")
         if len(work_data) > 0:
-            dept_output = work_data.groupby('Department').agg({
-                'Output_Per_Hour': 'mean'
-            }).sort_values('Output_Per_Hour', ascending=False)
+            dept_output = work_data.groupby('Department').agg({'Output_Per_Hour': 'mean'}).sort_values('Output_Per_Hour', ascending=False)
             
             fig = go.Figure(data=[
                 go.Bar(y=dept_output.index, x=dept_output['Output_Per_Hour'],
@@ -1310,20 +1184,15 @@ elif st.session_state.current_page == 'workforce_productivity':
     with col2:
         st.markdown("**Trend Over Time**")
         if len(work_data) > 0:
-            output_trend = work_data.groupby('Month').agg({
-                'Output_Per_Hour': 'mean'
-            }).reset_index().sort_values('Month')
+            output_trend = work_data.groupby('Month').agg({'Output_Per_Hour': 'mean'}).reset_index().sort_values('Month')
             
             if len(output_trend) > 1:
                 fig = create_trend_chart(output_trend, 'Month', 'Output_Per_Hour', 'Output Trend', '#059669')
                 st.plotly_chart(fig, use_container_width=True)
     
-    st.markdown('<div class="insights-box"><strong>💡 Insight:</strong> Output varies by department. Best performers deliver 30% higher productivity.</div>', unsafe_allow_html=True)
-    st.markdown('<div class="recommendation-box"><strong>✅ Recommendation:</strong> Document and share best practices from high-performing departments.</div>', unsafe_allow_html=True)
-    
     st.divider()
     
-    # ROW 2: Capacity Utilization with Heatmap
+    # ROW 2: Capacity Utilization
     st.markdown("**Capacity Utilization & Workload**")
     col1, col2 = st.columns([1, 1])
     
@@ -1335,9 +1204,7 @@ elif st.session_state.current_page == 'workforce_productivity':
         
         st.markdown("**By Department (Utilization)**")
         if len(capacity_data) > 0:
-            dept_capacity = capacity_data.groupby('Department').agg({
-                'Capacity_Utilization_Percentage': 'mean'
-            }).sort_values('Capacity_Utilization_Percentage', ascending=False)
+            dept_capacity = capacity_data.groupby('Department').agg({'Capacity_Utilization_Percentage': 'mean'}).sort_values('Capacity_Utilization_Percentage', ascending=False)
             
             fig = go.Figure()
             fig.add_trace(go.Bar(
@@ -1353,12 +1220,9 @@ elif st.session_state.current_page == 'workforce_productivity':
     with col2:
         st.markdown("**Capacity Heatmap (Department vs Month)**")
         if len(capacity_data) > 0 and 'Department' in capacity_data.columns:
-            fig = create_heatmap(capacity_data, 'Month', 'Department', 'Capacity_Utilization_Percentage', 'Capacity Utilization by Department & Month')
+            fig = create_heatmap(capacity_data, 'Month', 'Department', 'Capacity_Utilization_Percentage', 'Capacity Utilization by Department')
             if fig:
                 st.plotly_chart(fig, use_container_width=True)
-    
-    st.markdown('<div class="insights-box"><strong>💡 Insight:</strong> Average utilization is [X]%. Some teams overloaded (>120%), others underutilized.</div>', unsafe_allow_html=True)
-    st.markdown('<div class="recommendation-box"><strong>✅ Recommendation:</strong> Rebalance workload across teams to achieve 85-100% utilization.</div>', unsafe_allow_html=True)
     
     st.divider()
     
@@ -1374,9 +1238,7 @@ elif st.session_state.current_page == 'workforce_productivity':
     with col2:
         st.markdown("**By Department**")
         if len(model_data) > 0:
-            dept_model = model_data.groupby('Department').agg({
-                'Forecast_Accuracy_Percentage': 'mean'
-            }).sort_values('Forecast_Accuracy_Percentage', ascending=False)
+            dept_model = model_data.groupby('Department').agg({'Forecast_Accuracy_Percentage': 'mean'}).sort_values('Forecast_Accuracy_Percentage', ascending=False)
             
             fig = go.Figure(data=[
                 go.Bar(y=dept_model.index, x=dept_model['Forecast_Accuracy_Percentage'],
@@ -1387,27 +1249,13 @@ elif st.session_state.current_page == 'workforce_productivity':
             st.plotly_chart(fig, use_container_width=True)
     
     with col3:
-        st.markdown("**Staffing Variance**")
+        st.markdown("**Trend Over Time**")
         if len(model_data) > 0:
-            if 'Staffing_Variance_Percentage' in model_data.columns:
-                variance_data = model_data.groupby('Month').agg({
-                    'Staffing_Variance_Percentage': 'mean'
-                }).reset_index().sort_values('Month')
-                
-                if len(variance_data) > 1:
-                    fig = create_trend_chart(variance_data, 'Month', 'Staffing_Variance_Percentage', 'Staffing Variance Trend', '#dc2626')
-                    st.plotly_chart(fig, use_container_width=True)
-            else:
-                model_trend = model_data.groupby('Month').agg({
-                    'Forecast_Accuracy_Percentage': 'mean'
-                }).reset_index().sort_values('Month')
-                
-                if len(model_trend) > 1:
-                    fig = create_trend_chart(model_trend, 'Month', 'Forecast_Accuracy_Percentage', 'Model Accuracy Trend', '#1e40af')
-                    st.plotly_chart(fig, use_container_width=True)
-    
-    st.markdown('<div class="insights-box"><strong>💡 Insight:</strong> Model accuracy improving steadily. Forecast confidence strengthening month-over-month.</div>', unsafe_allow_html=True)
-    st.markdown('<div class="recommendation-box"><strong>✅ Recommendation:</strong> Use improved forecasts to optimize hiring and resource planning.</div>', unsafe_allow_html=True)
+            model_trend = model_data.groupby('Month').agg({'Forecast_Accuracy_Percentage': 'mean'}).reset_index().sort_values('Month')
+            
+            if len(model_trend) > 1:
+                fig = create_trend_chart(model_trend, 'Month', 'Forecast_Accuracy_Percentage', 'Model Accuracy Trend', '#1e40af')
+                st.plotly_chart(fig, use_container_width=True)
     
     st.divider()
     
@@ -1451,16 +1299,11 @@ elif st.session_state.current_page == 'workforce_productivity':
     with col2:
         st.markdown("**Collaboration Trend**")
         if len(collab_data) > 0:
-            collab_trend = collab_data.groupby('Month').agg({
-                'Collaboration_Tools_Time_Hours': 'mean'
-            }).reset_index().sort_values('Month')
+            collab_trend = collab_data.groupby('Month').agg({'Collaboration_Tools_Time_Hours': 'mean'}).reset_index().sort_values('Month')
             
             if len(collab_trend) > 1:
                 fig = create_trend_chart(collab_trend, 'Month', 'Collaboration_Tools_Time_Hours', 'Collaboration Hours Trend', '#0891b2')
                 st.plotly_chart(fig, use_container_width=True)
-    
-    st.markdown('<div class="insights-box"><strong>💡 Insight:</strong> Burnout risk correlates with >100% capacity utilization. Intervention needed.</div>', unsafe_allow_html=True)
-    st.markdown('<div class="recommendation-box"><strong>✅ Recommendation:</strong> Reduce workload for at-risk teams, increase flexibility, and enhance wellness programs.</div>', unsafe_allow_html=True)
     
     st.markdown("---")
     st.markdown("#### Detailed Data & Export")
@@ -1491,7 +1334,7 @@ elif st.session_state.current_page == 'workforce_productivity':
 st.divider()
 st.markdown(f"""
     <div style="text-align: center; padding: 15px; color: #6b7280; font-size: 11px;">
-        <strong>COO Dashboard v13.0 - Professional Edition</strong> | 
+        <strong>COO Dashboard v14.0 - Professional Edition</strong> | 
         {len(selected_months)} months | {len(dept_filter) if dept_filter else len(all_departments)} departments | 
         Updated: {datetime.now().strftime('%Y-%m-%d %H:%M')}
     </div>
