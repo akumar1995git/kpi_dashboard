@@ -436,9 +436,6 @@ if st.session_state.current_page == 'main':
         # Rework Cost
         chart_col_rework1, chart_col_rework2 = st.columns([3, 1], gap="small")
         with chart_col_rework1:
-            if st.button(f"Rework Cost %", key="btn_rework_detail", use_container_width=True, help="Click to navigate"):
-                st.session_state.current_page = 'cost_efficiency'
-                st.rerun()
             st.markdown(f"""
             <div class="subobjective-box cost">
                 <div class="subobjective-info">
@@ -458,9 +455,6 @@ if st.session_state.current_page == 'main':
         # Automation ROI
         chart_col_auto1, chart_col_auto2 = st.columns([3, 1], gap="small")
         with chart_col_auto1:
-            if st.button(f"Automation ROI", key="btn_auto_detail", use_container_width=True, help="Click to navigate"):
-                st.session_state.current_page = 'cost_efficiency'
-                st.rerun()
             st.markdown(f"""
             <div class="subobjective-box efficiency">
                 <div class="subobjective-info">
@@ -498,7 +492,6 @@ if st.session_state.current_page == 'main':
             st.markdown(f"""
             <div class="subobjective-box efficiency">
                 <div class="subobjective-info">
-                    <div class="subobjective-title">Digital Friction Index</div>
                     <div class="subobjective-value">{round_value(friction, 'index'):.1f}</div>
                     <div class="subobjective-trend"><span class="trend-down">{friction_trend}</span></div>
                 </div>
@@ -545,13 +538,9 @@ if st.session_state.current_page == 'main':
         # FTR Rate
         chart_col_ftr1, chart_col_ftr2 = st.columns([3, 1], gap="small")
         with chart_col_ftr1:
-            if st.button(f"FTR Rate", key="btn_ftr_detail", use_container_width=True, help="Click to navigate"):
-                st.session_state.current_page = 'execution_resilience'
-                st.rerun()
             st.markdown(f"""
             <div class="subobjective-box quality">
                 <div class="subobjective-info">
-                    <div class="subobjective-title">FTR Rate</div>
                     <div class="subobjective-value">{round_value(ftr_rate, 'percentage'):.1f}%</div>
                     <div class="subobjective-trend"><span class="trend-up">{ftr_trend}</span></div>
                 </div>
@@ -567,13 +556,9 @@ if st.session_state.current_page == 'main':
         # Process Adherence
         chart_col_adh1, chart_col_adh2 = st.columns([3, 1], gap="small")
         with chart_col_adh1:
-            if st.button(f"Process Adherence", key="btn_adh_detail", use_container_width=True, help="Click to navigate"):
-                st.session_state.current_page = 'execution_resilience'
-                st.rerun()
             st.markdown(f"""
             <div class="subobjective-box quality">
                 <div class="subobjective-info">
-                    <div class="subobjective-title">Process Adherence</div>
                     <div class="subobjective-value">{round_value(adherence, 'percentage'):.1f}%</div>
                     <div class="subobjective-trend"><span class="trend-up">{adh_trend}</span></div>
                 </div>
@@ -589,13 +574,9 @@ if st.session_state.current_page == 'main':
         # Resilience Score
         chart_col_res1, chart_col_res2 = st.columns([3, 1], gap="small")
         with chart_col_res1:
-            if st.button(f"Resilience Score", key="btn_res_detail", use_container_width=True, help="Click to navigate"):
-                st.session_state.current_page = 'execution_resilience'
-                st.rerun()
             st.markdown(f"""
             <div class="subobjective-box quality">
                 <div class="subobjective-info">
-                    <div class="subobjective-title">Resilience Score</div>
                     <div class="subobjective-value">{round_value(resilience, 'index'):.1f}/10</div>
                     <div class="subobjective-trend"><span class="trend-up">{res_trend}</span></div>
                 </div>
@@ -611,13 +592,9 @@ if st.session_state.current_page == 'main':
         # Escalations
         chart_col_esc1, chart_col_esc2 = st.columns([3, 1], gap="small")
         with chart_col_esc1:
-            if st.button(f"Escalations", key="btn_esc_detail", use_container_width=True, help="Click to navigate"):
-                st.session_state.current_page = 'execution_resilience'
-                st.rerun()
             st.markdown(f"""
             <div class="subobjective-box cost">
                 <div class="subobjective-info">
-                    <div class="subobjective-title">Escalations</div>
                     <div class="subobjective-value">{round_value(escalations, 'whole'):.0f}</div>
                     <div class="subobjective-trend"><span class="trend-down">{esc_trend}</span></div>
                 </div>
@@ -662,13 +639,9 @@ if st.session_state.current_page == 'main':
         # Output/FTE
         chart_col_out1, chart_col_out2 = st.columns([3, 1], gap="small")
         with chart_col_out1:
-            if st.button(f"Output/FTE", key="btn_out_detail", use_container_width=True, help="Click to navigate"):
-                st.session_state.current_page = 'workforce_productivity'
-                st.rerun()
             st.markdown(f"""
             <div class="subobjective-box efficiency">
                 <div class="subobjective-info">
-                    <div class="subobjective-title">Output/FTE</div>
                     <div class="subobjective-value">{round_value(avg_output, 'decimal'):.2f}</div>
                     <div class="subobjective-trend"><span class="trend-up">{out_trend}</span></div>
                 </div>
@@ -684,13 +657,9 @@ if st.session_state.current_page == 'main':
         # Capacity Utilization
         chart_col_cap1, chart_col_cap2 = st.columns([3, 1], gap="small")
         with chart_col_cap1:
-            if st.button(f"Capacity Utilization", key="btn_cap_detail", use_container_width=True, help="Click to navigate"):
-                st.session_state.current_page = 'workforce_productivity'
-                st.rerun()
             st.markdown(f"""
             <div class="subobjective-box efficiency">
                 <div class="subobjective-info">
-                    <div class="subobjective-title">Capacity Utilization</div>
                     <div class="subobjective-value">{round_value(avg_capacity, 'percentage'):.0f}%</div>
                     <div class="subobjective-trend"><span class="trend-down">{cap_trend}</span></div>
                 </div>
@@ -706,13 +675,9 @@ if st.session_state.current_page == 'main':
         # At-Risk Employees
         chart_col_risk1, chart_col_risk2 = st.columns([3, 1], gap="small")
         with chart_col_risk1:
-            if st.button(f"At-Risk Employees", key="btn_risk_detail", use_container_width=True, help="Click to navigate"):
-                st.session_state.current_page = 'workforce_productivity'
-                st.rerun()
             st.markdown(f"""
             <div class="subobjective-box cost">
                 <div class="subobjective-info">
-                    <div class="subobjective-title">At-Risk Employees</div>
                     <div class="subobjective-value">{round_value(burnout_count, 'whole'):.0f}</div>
                     <div class="subobjective-trend">Burnout risk count</div>
                 </div>
@@ -730,13 +695,9 @@ if st.session_state.current_page == 'main':
         # Model Accuracy
         chart_col_model1, chart_col_model2 = st.columns([3, 1], gap="small")
         with chart_col_model1:
-            if st.button(f"Model Accuracy", key="btn_model_detail", use_container_width=True, help="Click to navigate"):
-                st.session_state.current_page = 'workforce_productivity'
-                st.rerun()
             st.markdown(f"""
             <div class="subobjective-box quality">
                 <div class="subobjective-info">
-                    <div class="subobjective-title">Model Accuracy</div>
                     <div class="subobjective-value">{round_value(model_accuracy, 'percentage'):.0f}%</div>
                     <div class="subobjective-trend"><span class="trend-up">{model_trend}</span></div>
                 </div>
@@ -824,10 +785,11 @@ elif st.session_state.current_page == 'cost_efficiency':
     with col2:
         st.markdown("**ROI & Savings Trend**")
         if len(auto_data) > 0:
-            auto_trend = auto_data.groupby('Month').agg({
-                'ROI_Percentage_6M': 'mean',
-                'Time_Savings_Hours': 'sum' if 'Time_Savings_Hours' in auto_data.columns else lambda x: 0
-            }).reset_index().sort_values('Month')
+            agg_dict = {'ROI_Percentage_6M': 'mean'}
+            if 'Time_Savings_Hours' in auto_data.columns:
+                agg_dict['Time_Savings_Hours'] = 'sum'
+            
+            auto_trend = auto_data.groupby('Month').agg(agg_dict).reset_index().sort_values('Month')
             
             if len(auto_trend) > 1:
                 fig = go.Figure()
@@ -836,18 +798,23 @@ elif st.session_state.current_page == 'cost_efficiency':
                     mode='lines+markers', name='ROI %', line=dict(color='#059669', width=3),
                     marker=dict(size=8), yaxis='y1'
                 ))
-                if 'Time_Savings_Hours' in auto_trend.columns and auto_trend['Time_Savings_Hours'].sum() > 0:
+                if 'Time_Savings_Hours' in auto_trend.columns:
                     fig.add_trace(go.Scatter(
                         x=auto_trend['Month'], y=auto_trend['Time_Savings_Hours'],
                         mode='lines+markers', name='Time Savings (hrs)', line=dict(color='#f59e0b', width=3),
                         marker=dict(size=8), yaxis='y2'
                     ))
-                fig.update_layout(
-                    title='ROI & Time Savings Trend', height=250, hovermode='x unified',
-                    yaxis=dict(title='ROI %', titlefont=dict(color='#059669'), tickfont=dict(color='#059669')),
-                    yaxis2=dict(title='Hours', titlefont=dict(color='#f59e0b'), tickfont=dict(color='#f59e0b'), overlaying='y', side='right'),
-                    plot_bgcolor="rgba(0,0,0,0)", margin=dict(l=0, r=0, t=30, b=0)
-                )
+                    fig.update_layout(
+                        title='ROI & Time Savings Trend', height=250, hovermode='x unified',
+                        yaxis=dict(title='ROI %', titlefont=dict(color='#059669'), tickfont=dict(color='#059669')),
+                        yaxis2=dict(title='Hours', titlefont=dict(color='#f59e0b'), tickfont=dict(color='#f59e0b'), overlaying='y', side='right'),
+                        plot_bgcolor="rgba(0,0,0,0)", margin=dict(l=0, r=0, t=30, b=0)
+                    )
+                else:
+                    fig.update_layout(
+                        title='ROI Trend', height=250, hovermode='x unified',
+                        plot_bgcolor="rgba(0,0,0,0)", margin=dict(l=0, r=0, t=30, b=0)
+                    )
                 st.plotly_chart(fig, use_container_width=True)
     
     with col3:
