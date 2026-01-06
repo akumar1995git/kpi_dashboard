@@ -1325,7 +1325,40 @@ elif st.session_state.current_page == 'workforce_productivity':
             if len(collab_trend) > 1:
                 fig = create_trend_chart(collab_trend, 'Month', 'Collaboration_Tools_Time_Hours', 'Collaboration Hours Trend', '#0891b2')
                 st.plotly_chart(fig, use_container_width=True)
+st.divider()
+     st.markdown("### Action Insights")
+    col_action1, col_action2 = st.columns([1, 1])
     
+    with col_action1:
+        st.markdown("**Workforce Health & Burnout Alerts:**")
+        if len(capacity_data) > 0:
+            burnout_high_cap = capacity_data[(capacity_data['Burnout_Risk_Flag'] == 'Yes') & (capacity_data['Capacity_Utilization_Percentage'] > 100)]
+            burnout_high_cap = burnout_high_cap.nlargest(5, 'Capacity_Utilization_Percentage')[['Employee_ID', 'Department', 'Capacity_Utilization_Percentage']] if 'Employee_ID' in burnout_high_cap.columns else burnout_high_cap.nlargest(5, 'Capacity_Utilization_Percentage')[['Department', 'Capacity_Utilization_Percentage']]
+            
+            if len(burnout_high_cap) > 0:
+                for idx, row in burnout_high_cap.iterrows():
+                    if 'Employee_ID' in capacity_data.columns:
+                        st.markdown(f'<div class="recommendation-box">{row["Employee_ID"]} ({row["Department"]}): {row["Capacity_Utilization_Percentage"]:.0f}% utilization - Immediate intervention required</div>', unsafe_allow_html=True)
+                    else:
+                        st.markdown(f'<div class="recommendation-box">{row["Department"]}: {row["Capacity_Utilization_Percentage"]:.0f}% utilization - Rebalance workload</div>', unsafe_allow_html=True)
+            else:
+                st.markdown('<div class="insights-box">No critical burnout alerts with over-capacity conditions</div>', unsafe_allow_html=True)
+    
+    with col_action2:
+        st.markdown("**Capacity Optimization Opportunities:**")
+        if len(capacity_data) > 0:
+            dept_capacity = capacity_data.groupby('Department').agg({'Capacity_Utilization_Percentage': 'mean'}).reset_index()
+            underutilized = dept_capacity[dept_capacity['Capacity_Utilization_Percentage'] < 85].nlargest(5, 'Capacity_Utilization_Percentage')
+            
+            if len(underutilized) > 0:
+                for idx, row in underutilized.iterrows():
+                    available_capacity = 100 - row['Capacity_Utilization_Percentage']
+                    st.markdown(f'<div class="insights-box">{row["Department"]}: {available_capacity:.0f}% available capacity - Consider resource reallocation</div>', unsafe_allow_html=True)
+            else:
+                st.markdown('<div class="recommendation-box">All departments operating at optimal capacity levels</div>', unsafe_allow_html=True)
+    
+    st.divider()
+
     st.markdown("---")
     st.markdown("#### Detailed Data & Export")
     
