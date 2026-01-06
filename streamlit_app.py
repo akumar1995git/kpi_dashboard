@@ -8,7 +8,7 @@ import io
 
 # ==================== PAGE CONFIG ====================
 st.set_page_config(
-    page_title="COO Dashboard",
+    page_title="COO Operational Dashboard",
     page_icon="📊",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -64,6 +64,13 @@ st.markdown("""
         grid-template-columns: 1fr auto;
         gap: 12px;
         align-items: center;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .subobjective-box:hover {
+        background: #f3f4f6;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.05);
     }
 
     .subobjective-box.cost { border-left-color: #ef4444; }
@@ -98,6 +105,36 @@ st.markdown("""
         display: flex;
         align-items: center;
         justify-content: center;
+    }
+
+    /* Navigation buttons */
+    .nav-container {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+    }
+
+    .nav-button {
+        padding: 8px 14px;
+        border-radius: 6px;
+        border: 1px solid #d1d5db;
+        background: white;
+        cursor: pointer;
+        font-size: 12px;
+        font-weight: 500;
+        transition: all 0.2s ease;
+    }
+
+    .nav-button:hover {
+        background: #f3f4f6;
+        border-color: #1e40af;
+    }
+
+    .nav-button.active {
+        background: #1e40af;
+        color: white;
+        border-color: #1e40af;
     }
 
     /* Trend indicator */
@@ -252,7 +289,7 @@ def create_sparkline(df, x_col, y_col, color='#1e40af'):
         fill='tozeroy',
         fillcolor=f'rgba({int(color[1:3], 16)}, {int(color[3:5], 16)}, {int(color[5:7], 16)}, 0.15)',
         hoverinfo='y',
-        hovertemplate='<b>%{y:.1f}</b><extra></extra>'
+        hovertemplate='<b>%{y:.2f}</b><extra></extra>'
     ))
     fig.update_layout(
         title=None,
@@ -306,6 +343,42 @@ def get_month_over_month_change(df, metric_col, month_col='Month'):
     
     return last_value, change
 
+def round_value(value, metric_type='percentage'):
+    """Round values intelligently based on metric type"""
+    if metric_type == 'percentage':
+        return round(value, 1)
+    elif metric_type == 'decimal':
+        return round(value, 2)
+    elif metric_type == 'whole':
+        return round(value, 0)
+    elif metric_type == 'index':
+        return round(value, 1)
+    return round(value, 2)
+
+def show_navigation():
+    """Display navigation buttons"""
+    col1, col2, col3, col4 = st.columns([1, 1, 1, 2])
+    
+    with col1:
+        if st.button("Home", key="btn_home", use_container_width=True):
+            st.session_state.current_page = 'main'
+            st.rerun()
+    
+    with col2:
+        if st.button("Cost & Efficiency", key="btn_nav_cost", use_container_width=True):
+            st.session_state.current_page = 'cost_efficiency'
+            st.rerun()
+    
+    with col3:
+        if st.button("Execution & Resilience", key="btn_nav_exec", use_container_width=True):
+            st.session_state.current_page = 'execution_resilience'
+            st.rerun()
+    
+    with col4:
+        if st.button("Workforce & Productivity", key="btn_nav_workforce", use_container_width=True):
+            st.session_state.current_page = 'workforce_productivity'
+            st.rerun()
+
 # ==================== HEADER ====================
 st.markdown("""
     <div style="background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%); 
@@ -339,9 +412,9 @@ if st.session_state.current_page == 'main':
         auto_val, auto_change = get_month_over_month_change(auto_data, 'ROI_Percentage_6M')
         friction_val, friction_change = get_month_over_month_change(digital_data, 'Friction_Index_Score')
         
-        rework_trend = f"{rework_change:+.1f}% vs last month" if rework_change is not None else "No data"
-        auto_trend = f"{auto_change:+.1f}% vs last month" if auto_change is not None else "No data"
-        friction_trend = f"{friction_change:+.1f}% vs last month" if friction_change is not None else "No data"
+        rework_trend = f"{round_value(rework_change, 'percentage'):+.1f}% vs last month" if rework_change is not None else "No data"
+        auto_trend = f"{round_value(auto_change, 'percentage'):+.1f}% vs last month" if auto_change is not None else "No data"
+        friction_trend = f"{round_value(friction_change, 'percentage'):+.1f}% vs last month" if friction_change is not None else "No data"
         
         if st.button("Cost & Efficiency", key="btn_cost", use_container_width=True, help="ROI, Rework, Automation, Digital Readiness"):
             st.session_state.current_page = 'cost_efficiency'
@@ -352,11 +425,14 @@ if st.session_state.current_page == 'main':
         # Rework Cost
         chart_col_rework1, chart_col_rework2 = st.columns([3, 1], gap="small")
         with chart_col_rework1:
+            if st.button(f"Rework Cost %", key="btn_rework_detail", use_container_width=True, help="Click to navigate"):
+                st.session_state.current_page = 'cost_efficiency'
+                st.rerun()
             st.markdown(f"""
             <div class="subobjective-box cost">
                 <div class="subobjective-info">
                     <div class="subobjective-title">Rework Cost %</div>
-                    <div class="subobjective-value">{rework_pct:.1f}%</div>
+                    <div class="subobjective-value">{round_value(rework_pct, 'percentage'):.1f}%</div>
                     <div class="subobjective-trend"><span class="trend-down">{rework_trend}</span></div>
                 </div>
             </div>
@@ -371,11 +447,14 @@ if st.session_state.current_page == 'main':
         # Automation ROI
         chart_col_auto1, chart_col_auto2 = st.columns([3, 1], gap="small")
         with chart_col_auto1:
+            if st.button(f"Automation ROI", key="btn_auto_detail", use_container_width=True, help="Click to navigate"):
+                st.session_state.current_page = 'cost_efficiency'
+                st.rerun()
             st.markdown(f"""
             <div class="subobjective-box efficiency">
                 <div class="subobjective-info">
                     <div class="subobjective-title">Automation ROI</div>
-                    <div class="subobjective-value">{auto_roi:.0f}%</div>
+                    <div class="subobjective-value">{round_value(auto_roi, 'whole'):.0f}%</div>
                     <div class="subobjective-trend"><span class="trend-up">{auto_trend}</span></div>
                 </div>
             </div>
@@ -394,13 +473,13 @@ if st.session_state.current_page == 'main':
             <div class="subobjective-box efficiency">
                 <div class="subobjective-info">
                     <div class="subobjective-title">Automation Coverage</div>
-                    <div class="subobjective-value">{automation_coverage:.0f}%</div>
+                    <div class="subobjective-value">{round_value(automation_coverage, 'percentage'):.0f}%</div>
                     <div class="subobjective-trend">Process automation</div>
                 </div>
             </div>
             """, unsafe_allow_html=True)
         with chart_col_cov2:
-            st.write("")  # Placeholder
+            st.write("")
         
         # Digital Friction
         chart_col_fric1, chart_col_fric2 = st.columns([3, 1], gap="small")
@@ -409,7 +488,7 @@ if st.session_state.current_page == 'main':
             <div class="subobjective-box efficiency">
                 <div class="subobjective-info">
                     <div class="subobjective-title">Digital Friction Index</div>
-                    <div class="subobjective-value">{friction:.1f}</div>
+                    <div class="subobjective-value">{round_value(friction, 'index'):.1f}</div>
                     <div class="subobjective-trend"><span class="trend-down">{friction_trend}</span></div>
                 </div>
             </div>
@@ -439,10 +518,12 @@ if st.session_state.current_page == 'main':
         ftr_val, ftr_change = get_month_over_month_change(ftr_data, 'FTR_Rate_Percentage')
         adh_val, adh_change = get_month_over_month_change(adherence_data, 'Adherence_Rate_Percentage')
         res_val, res_change = get_month_over_month_change(resilience_data, 'Resilience_Score')
+        esc_val, esc_change = get_month_over_month_change(escalation_data, 'Step_Exception_Count')
         
-        ftr_trend = f"{ftr_change:+.1f}% vs last month" if ftr_change is not None else "No data"
-        adh_trend = f"{adh_change:+.1f}% vs last month" if adh_change is not None else "No data"
-        res_trend = f"{res_change:+.1f}% vs last month" if res_change is not None else "No data"
+        ftr_trend = f"{round_value(ftr_change, 'percentage'):+.1f}% vs last month" if ftr_change is not None else "No data"
+        adh_trend = f"{round_value(adh_change, 'percentage'):+.1f}% vs last month" if adh_change is not None else "No data"
+        res_trend = f"{round_value(res_change, 'percentage'):+.1f}% vs last month" if res_change is not None else "No data"
+        esc_trend = f"{round_value(esc_change, 'percentage'):+.1f}% vs last month" if esc_change is not None else "No data"
         
         if st.button("Execution & Resilience", key="btn_execution", use_container_width=True, help="FTR, Adherence, Resilience, Exceptions"):
             st.session_state.current_page = 'execution_resilience'
@@ -453,11 +534,14 @@ if st.session_state.current_page == 'main':
         # FTR Rate
         chart_col_ftr1, chart_col_ftr2 = st.columns([3, 1], gap="small")
         with chart_col_ftr1:
+            if st.button(f"FTR Rate", key="btn_ftr_detail", use_container_width=True, help="Click to navigate"):
+                st.session_state.current_page = 'execution_resilience'
+                st.rerun()
             st.markdown(f"""
             <div class="subobjective-box quality">
                 <div class="subobjective-info">
                     <div class="subobjective-title">FTR Rate</div>
-                    <div class="subobjective-value">{ftr_rate:.1f}%</div>
+                    <div class="subobjective-value">{round_value(ftr_rate, 'percentage'):.1f}%</div>
                     <div class="subobjective-trend"><span class="trend-up">{ftr_trend}</span></div>
                 </div>
             </div>
@@ -472,11 +556,14 @@ if st.session_state.current_page == 'main':
         # Process Adherence
         chart_col_adh1, chart_col_adh2 = st.columns([3, 1], gap="small")
         with chart_col_adh1:
+            if st.button(f"Process Adherence", key="btn_adh_detail", use_container_width=True, help="Click to navigate"):
+                st.session_state.current_page = 'execution_resilience'
+                st.rerun()
             st.markdown(f"""
             <div class="subobjective-box quality">
                 <div class="subobjective-info">
                     <div class="subobjective-title">Process Adherence</div>
-                    <div class="subobjective-value">{adherence:.1f}%</div>
+                    <div class="subobjective-value">{round_value(adherence, 'percentage'):.1f}%</div>
                     <div class="subobjective-trend"><span class="trend-up">{adh_trend}</span></div>
                 </div>
             </div>
@@ -491,11 +578,14 @@ if st.session_state.current_page == 'main':
         # Resilience Score
         chart_col_res1, chart_col_res2 = st.columns([3, 1], gap="small")
         with chart_col_res1:
+            if st.button(f"Resilience Score", key="btn_res_detail", use_container_width=True, help="Click to navigate"):
+                st.session_state.current_page = 'execution_resilience'
+                st.rerun()
             st.markdown(f"""
             <div class="subobjective-box quality">
                 <div class="subobjective-info">
                     <div class="subobjective-title">Resilience Score</div>
-                    <div class="subobjective-value">{resilience:.1f}/10</div>
+                    <div class="subobjective-value">{round_value(resilience, 'index'):.1f}/10</div>
                     <div class="subobjective-trend"><span class="trend-up">{res_trend}</span></div>
                 </div>
             </div>
@@ -510,17 +600,24 @@ if st.session_state.current_page == 'main':
         # Escalations
         chart_col_esc1, chart_col_esc2 = st.columns([3, 1], gap="small")
         with chart_col_esc1:
+            if st.button(f"Escalations", key="btn_esc_detail", use_container_width=True, help="Click to navigate"):
+                st.session_state.current_page = 'execution_resilience'
+                st.rerun()
             st.markdown(f"""
             <div class="subobjective-box cost">
                 <div class="subobjective-info">
                     <div class="subobjective-title">Escalations</div>
-                    <div class="subobjective-value">{escalations:.0f}</div>
-                    <div class="subobjective-trend">Exception volume</div>
+                    <div class="subobjective-value">{round_value(escalations, 'whole'):.0f}</div>
+                    <div class="subobjective-trend"><span class="trend-down">{esc_trend}</span></div>
                 </div>
             </div>
             """, unsafe_allow_html=True)
         with chart_col_esc2:
-            st.write("")  # Placeholder
+            if len(escalation_data) > 1:
+                esc_trend_data = escalation_data.groupby('Month').agg({'Step_Exception_Count': 'sum'}).reset_index().sort_values('Month')
+                fig = create_sparkline(esc_trend_data, 'Month', 'Step_Exception_Count', '#ef4444')
+                if fig:
+                    st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
         
         st.markdown('</div>', unsafe_allow_html=True)
     
@@ -539,10 +636,11 @@ if st.session_state.current_page == 'main':
         cap_val, cap_change = get_month_over_month_change(capacity_data, 'Capacity_Utilization_Percentage')
         out_val, out_change = get_month_over_month_change(work_data, 'Output_Per_Hour')
         model_val, model_change = get_month_over_month_change(model_data, 'Forecast_Accuracy_Percentage')
+        burnout_change_val = None
         
-        cap_trend = f"{cap_change:+.1f}% vs last month" if cap_change is not None else "No data"
-        out_trend = f"{out_change:+.1f}% vs last month" if out_change is not None else "No data"
-        model_trend = f"{model_change:+.1f}% vs last month" if model_change is not None else "No data"
+        cap_trend = f"{round_value(cap_change, 'percentage'):+.1f}% vs last month" if cap_change is not None else "No data"
+        out_trend = f"{round_value(out_change, 'percentage'):+.1f}% vs last month" if out_change is not None else "No data"
+        model_trend = f"{round_value(model_change, 'percentage'):+.1f}% vs last month" if model_change is not None else "No data"
         
         if st.button("Workforce & Productivity", key="btn_workforce", use_container_width=True, help="Output, Capacity, Health, Model Accuracy"):
             st.session_state.current_page = 'workforce_productivity'
@@ -553,11 +651,14 @@ if st.session_state.current_page == 'main':
         # Output/FTE
         chart_col_out1, chart_col_out2 = st.columns([3, 1], gap="small")
         with chart_col_out1:
+            if st.button(f"Output/FTE", key="btn_out_detail", use_container_width=True, help="Click to navigate"):
+                st.session_state.current_page = 'workforce_productivity'
+                st.rerun()
             st.markdown(f"""
             <div class="subobjective-box efficiency">
                 <div class="subobjective-info">
                     <div class="subobjective-title">Output/FTE</div>
-                    <div class="subobjective-value">{avg_output:.2f}</div>
+                    <div class="subobjective-value">{round_value(avg_output, 'decimal'):.2f}</div>
                     <div class="subobjective-trend"><span class="trend-up">{out_trend}</span></div>
                 </div>
             </div>
@@ -572,11 +673,14 @@ if st.session_state.current_page == 'main':
         # Capacity Utilization
         chart_col_cap1, chart_col_cap2 = st.columns([3, 1], gap="small")
         with chart_col_cap1:
+            if st.button(f"Capacity Utilization", key="btn_cap_detail", use_container_width=True, help="Click to navigate"):
+                st.session_state.current_page = 'workforce_productivity'
+                st.rerun()
             st.markdown(f"""
             <div class="subobjective-box efficiency">
                 <div class="subobjective-info">
                     <div class="subobjective-title">Capacity Utilization</div>
-                    <div class="subobjective-value">{avg_capacity:.0f}%</div>
+                    <div class="subobjective-value">{round_value(avg_capacity, 'percentage'):.0f}%</div>
                     <div class="subobjective-trend"><span class="trend-down">{cap_trend}</span></div>
                 </div>
             </div>
@@ -591,26 +695,38 @@ if st.session_state.current_page == 'main':
         # At-Risk Employees
         chart_col_risk1, chart_col_risk2 = st.columns([3, 1], gap="small")
         with chart_col_risk1:
+            if st.button(f"At-Risk Employees", key="btn_risk_detail", use_container_width=True, help="Click to navigate"):
+                st.session_state.current_page = 'workforce_productivity'
+                st.rerun()
             st.markdown(f"""
             <div class="subobjective-box cost">
                 <div class="subobjective-info">
                     <div class="subobjective-title">At-Risk Employees</div>
-                    <div class="subobjective-value">{burnout_count}</div>
+                    <div class="subobjective-value">{round_value(burnout_count, 'whole'):.0f}</div>
                     <div class="subobjective-trend">Burnout risk count</div>
                 </div>
             </div>
             """, unsafe_allow_html=True)
         with chart_col_risk2:
-            st.write("")  # Placeholder
+            if len(capacity_data) > 1:
+                burnout_trend_data = capacity_data[capacity_data['Burnout_Risk_Flag'] == 'Yes'].groupby('Month').size().reset_index(name='count')
+                burnout_trend_data = burnout_trend_data.rename(columns={'Month': 'Month', 'count': 'Count'})
+                if len(burnout_trend_data) > 0:
+                    fig = create_sparkline(burnout_trend_data, 'Month', 'Count', '#ef4444')
+                    if fig:
+                        st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
         
         # Model Accuracy
         chart_col_model1, chart_col_model2 = st.columns([3, 1], gap="small")
         with chart_col_model1:
+            if st.button(f"Model Accuracy", key="btn_model_detail", use_container_width=True, help="Click to navigate"):
+                st.session_state.current_page = 'workforce_productivity'
+                st.rerun()
             st.markdown(f"""
             <div class="subobjective-box quality">
                 <div class="subobjective-info">
                     <div class="subobjective-title">Model Accuracy</div>
-                    <div class="subobjective-value">{model_accuracy:.0f}%</div>
+                    <div class="subobjective-value">{round_value(model_accuracy, 'percentage'):.0f}%</div>
                     <div class="subobjective-trend"><span class="trend-up">{model_trend}</span></div>
                 </div>
             </div>
@@ -626,14 +742,8 @@ if st.session_state.current_page == 'main':
 
 # ==================== DETAIL PAGE 1: COST & EFFICIENCY ====================
 elif st.session_state.current_page == 'cost_efficiency':
-    col1, col2 = st.columns([1, 6])
-    with col1:
-        if st.button("Back", key="back_cost"):
-            st.session_state.current_page = 'main'
-            st.rerun()
-    with col2:
-        st.markdown("### Cost & Efficiency - Deep Dive")
-    
+    show_navigation()
+    st.markdown("### Cost & Efficiency - Deep Dive")
     st.markdown("---")
     
     rework_data = filter_data(data['Process_Rework'])
@@ -651,7 +761,7 @@ elif st.session_state.current_page == 'cost_efficiency':
     with col1:
         st.markdown("**KPI Card**")
         rework_pct = rework_data['Rework_Cost_Percentage'].mean()
-        st.metric(label="Rework Cost %", value=f"{rework_pct:.1f}%", delta="-0.3%")
+        st.metric(label="Rework Cost %", value=f"{round_value(rework_pct, 'percentage'):.1f}%", delta="-0.3%")
     
     with col2:
         st.markdown("**Monthly Trend**")
@@ -687,7 +797,7 @@ elif st.session_state.current_page == 'cost_efficiency':
     with col1:
         st.markdown("**KPI Card**")
         auto_roi = auto_data['ROI_Percentage_6M'].mean()
-        st.metric(label="Automation ROI", value=f"{auto_roi:.0f}%", delta="+45%")
+        st.metric(label="Automation ROI", value=f"{round_value(auto_roi, 'whole'):.0f}%", delta="+45%")
     
     with col2:
         st.markdown("**ROI Trend**")
@@ -827,14 +937,8 @@ elif st.session_state.current_page == 'cost_efficiency':
 
 # ==================== DETAIL PAGE 2: EXECUTION & RESILIENCE ====================
 elif st.session_state.current_page == 'execution_resilience':
-    col1, col2 = st.columns([1, 6])
-    with col1:
-        if st.button("Back", key="back_exec"):
-            st.session_state.current_page = 'main'
-            st.rerun()
-    with col2:
-        st.markdown("### Execution & Resilience - Deep Dive")
-    
+    show_navigation()
+    st.markdown("### Execution & Resilience - Deep Dive")
     st.markdown("---")
     
     ftr_data = filter_data(data['FTR_Rate'])
@@ -851,7 +955,7 @@ elif st.session_state.current_page == 'execution_resilience':
     with col1:
         st.markdown("**KPI Card**")
         ftr_rate = ftr_data['FTR_Rate_Percentage'].mean()
-        st.metric(label="FTR Rate", value=f"{ftr_rate:.1f}%", delta="+2.1%")
+        st.metric(label="FTR Rate", value=f"{round_value(ftr_rate, 'percentage'):.1f}%", delta="+2.1%")
     
     with col2:
         st.markdown("**Trend Over Time**")
@@ -924,7 +1028,7 @@ elif st.session_state.current_page == 'execution_resilience':
     with col1:
         st.markdown("**KPI Card**")
         adherence = adherence_data['Adherence_Rate_Percentage'].mean()
-        st.metric(label="Adherence Rate", value=f"{adherence:.1f}%", delta="-1.2%")
+        st.metric(label="Adherence Rate", value=f"{round_value(adherence, 'percentage'):.1f}%", delta="-1.2%")
     
     with col2:
         st.markdown("**By Department**")
@@ -960,7 +1064,7 @@ elif st.session_state.current_page == 'execution_resilience':
     with col1:
         st.markdown("**Total Escalations**")
         escalations = escalation_data['Step_Exception_Count'].sum()
-        st.metric(label="Escalations", value=f"{escalations:.0f}", delta="+8%")
+        st.metric(label="Escalations", value=f"{round_value(escalations, 'whole'):.0f}", delta="+8%")
     
     with col2:
         st.markdown("**By Process**")
@@ -1014,14 +1118,8 @@ elif st.session_state.current_page == 'execution_resilience':
 
 # ==================== DETAIL PAGE 3: WORKFORCE & PRODUCTIVITY ====================
 elif st.session_state.current_page == 'workforce_productivity':
-    col1, col2 = st.columns([1, 6])
-    with col1:
-        if st.button("Back", key="back_workforce"):
-            st.session_state.current_page = 'main'
-            st.rerun()
-    with col2:
-        st.markdown("### Workforce & Productivity - Deep Dive")
-    
+    show_navigation()
+    st.markdown("### Workforce & Productivity - Deep Dive")
     st.markdown("---")
     
     capacity_data = filter_data(data['Capacity'])
@@ -1038,7 +1136,7 @@ elif st.session_state.current_page == 'workforce_productivity':
     with col1:
         st.markdown("**KPI Card**")
         avg_output = work_data['Output_Per_Hour'].mean()
-        st.metric(label="Output/FTE", value=f"{avg_output:.2f}", delta="+0.3")
+        st.metric(label="Output/FTE", value=f"{round_value(avg_output, 'decimal'):.2f}", delta="+0.3")
     
     with col2:
         st.markdown("**By Work Model**")
@@ -1112,7 +1210,7 @@ elif st.session_state.current_page == 'workforce_productivity':
     with col1:
         st.markdown("**KPI Card**")
         model_accuracy = model_data['Forecast_Accuracy_Percentage'].mean()
-        st.metric(label="Model Accuracy", value=f"{model_accuracy:.0f}%", delta="+3.2%")
+        st.metric(label="Model Accuracy", value=f"{round_value(model_accuracy, 'percentage'):.0f}%", delta="+3.2%")
     
     with col2:
         st.markdown("**By Department**")
@@ -1148,7 +1246,7 @@ elif st.session_state.current_page == 'workforce_productivity':
     with col1:
         st.markdown("**At-Risk Count**")
         burnout_count = capacity_data[capacity_data['Burnout_Risk_Flag'] == 'Yes'].shape[0]
-        st.metric(label="At-Risk Employees", value=f"{burnout_count}", delta="+2")
+        st.metric(label="At-Risk Employees", value=f"{round_value(burnout_count, 'whole'):.0f}", delta="+2")
     
     with col2:
         st.markdown("**By Department**")
@@ -1203,7 +1301,7 @@ elif st.session_state.current_page == 'workforce_productivity':
 st.divider()
 st.markdown(f"""
     <div style="text-align: center; padding: 15px; color: #6b7280; font-size: 11px;">
-        <strong>COO Dashboard v11.0 - Professional Edition with Inline Sparklines</strong> | 
+        <strong>COO Dashboard v12.0 - Professional Edition</strong> | 
         {len(selected_months)} months | {len(dept_filter) if dept_filter else len(all_departments)} departments | 
         Updated: {datetime.now().strftime('%Y-%m-%d %H:%M')}
     </div>
