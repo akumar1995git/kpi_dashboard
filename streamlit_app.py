@@ -1141,6 +1141,30 @@ elif st.session_state.current_page == 'execution_resilience':
             st.plotly_chart(fig, use_container_width=True)
     
     st.divider()
+    st.markdown("### Action Insights")
+    col_action1, col_action2 = st.columns([1, 1])
+    
+    with col_action1:
+        st.markdown("**Quality & Compliance Issues:**")
+        if len(ftr_data) > 0:
+            lowest_ftr = ftr_data.nsmallest(5, 'FTR_Rate_Percentage')[['Process_Name', 'Department', 'FTR_Rate_Percentage']] if 'Process_Name' in ftr_data.columns else ftr_data.nsmallest(5, 'FTR_Rate_Percentage')[['Department', 'FTR_Rate_Percentage']]
+            for idx, row in lowest_ftr.iterrows():
+                if 'Process_Name' in ftr_data.columns:
+                    st.markdown(f'<div class="recommendation-box">{row["Process_Name"]} ({row["Department"]}): FTR Rate {row["FTR_Rate_Percentage"]:.1f}% - Requires improvement plan</div>', unsafe_allow_html=True)
+                else:
+                    st.markdown(f'<div class="recommendation-box">{row["Department"]}: FTR Rate {row["FTR_Rate_Percentage"]:.1f}% - Requires improvement plan</div>', unsafe_allow_html=True)
+    
+    with col_action2:
+        st.markdown("**Escalation Risk Hotspots:**")
+        if len(escalation_data) > 0:
+            top_escalations = escalation_data.nlargest(5, 'Step_Exception_Count')[['Process', 'Step_Exception_Count']] if 'Process' in escalation_data.columns else escalation_data.nlargest(5, 'Step_Exception_Count')
+            for idx, row in top_escalations.iterrows():
+                process_name = row['Process'] if 'Process' in escalation_data.columns else 'Unknown Process'
+                count = row['Step_Exception_Count']
+                st.markdown(f'<div class="insights-box">{process_name}: {int(count)} exceptions - Root cause analysis needed</div>', unsafe_allow_html=True)
+    
+    st.divider()
+
     st.markdown("#### Detailed Data & Export")
     
     tabs = st.tabs(["FTR Rate", "Adherence", "Resilience", "Escalations"])
