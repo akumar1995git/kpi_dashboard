@@ -95,7 +95,7 @@ st.markdown("""
     }
 
     .subobjective-trend {
-        font-size: 22px;
+        font-size: 11px;
         color: #6b7280;
     }
 
@@ -1183,7 +1183,8 @@ elif st.session_state.current_page == 'workforce_productivity':
         st.markdown("**KPI Card**")
         avg_output = work_data['Output_Per_Hour'].mean()
         st.metric(label="Output/FTE", value=f"{round_value(avg_output, 'decimal'):.3f}", delta="+0.3")
-        
+
+    with col2:
         st.markdown("**By Department**")
         if len(work_data) > 0:
             dept_output = work_data.groupby('Department').agg({'Output_Per_Hour': 'mean'}).sort_values('Output_Per_Hour', ascending=False)
@@ -1196,7 +1197,7 @@ elif st.session_state.current_page == 'workforce_productivity':
             fig.update_layout(height=280, showlegend=False, plot_bgcolor="rgba(0,0,0,0)", hovermode='y unified')
             st.plotly_chart(fig, use_container_width=True)
     
-    with col2:
+    with col3:
         st.markdown("**Trend Over Time**")
         if len(work_data) > 0:
             output_trend = work_data.groupby('Month').agg({'Output_Per_Hour': 'mean'}).reset_index().sort_values('Month')
@@ -1216,7 +1217,8 @@ elif st.session_state.current_page == 'workforce_productivity':
         avg_capacity = capacity_data['Capacity_Utilization_Percentage'].mean()
         fig = create_gauge_chart(avg_capacity, 150, 'Capacity %', '#f59e0b', size='small')
         st.plotly_chart(fig, use_container_width=True)
-        
+
+    with col2:
         st.markdown("**By Department (Utilization)**")
         if len(capacity_data) > 0:
             dept_capacity = capacity_data.groupby('Department').agg({'Capacity_Utilization_Percentage': 'mean'}).sort_values('Capacity_Utilization_Percentage', ascending=False)
@@ -1232,7 +1234,7 @@ elif st.session_state.current_page == 'workforce_productivity':
             fig.update_layout(height=280, showlegend=False, plot_bgcolor="rgba(0,0,0,0)", hovermode='y unified', xaxis_title='Utilization %')
             st.plotly_chart(fig, use_container_width=True)
     
-    with col2:
+    with col3:
         st.markdown("**Capacity Heatmap (Department vs Month)**")
         if len(capacity_data) > 0 and 'Department' in capacity_data.columns:
             fig = create_heatmap(capacity_data, 'Month', 'Department', 'Capacity_Utilization_Percentage', 'Capacity Utilization by Department')
@@ -1285,7 +1287,8 @@ elif st.session_state.current_page == 'workforce_productivity':
         burnout_pct = (burnout_count / total_employees * 100) if total_employees > 0 else 0
         st.metric(label="At-Risk Employees", value=f"{round_value(burnout_count, 'whole'):.0f}", delta="+2")
         st.metric(label="At-Risk %", value=f"{round_value(burnout_pct, 'percentage'):.1f}%")
-        
+
+    with col2:
         st.markdown("**At-Risk & Capacity by Dept**")
         if len(capacity_data) > 0:
             at_risk_capacity = capacity_data.groupby('Department').agg({
@@ -1311,7 +1314,7 @@ elif st.session_state.current_page == 'workforce_productivity':
             )
             st.plotly_chart(fig, use_container_width=True)
     
-    with col2:
+    with col3:
         st.markdown("**Collaboration Trend**")
         if len(collab_data) > 0:
             collab_trend = collab_data.groupby('Month').agg({'Collaboration_Tools_Time_Hours': 'mean'}).reset_index().sort_values('Month')
