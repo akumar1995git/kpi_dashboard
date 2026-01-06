@@ -304,24 +304,31 @@ def create_sparkline(df, x_col, y_col, color='#1e40af'):
     )
     return fig
 
-def create_gauge_chart(value, max_value, title, color='#1e40af'):
-    """Create a gauge chart"""
+def create_gauge_chart(value, max_value, title, color='#1e40af', size='medium'):
+    """Create a gauge chart with configurable size"""
+    height = 200 if size == 'small' else 250
     fig = go.Figure(data=[go.Indicator(
         mode="gauge+number",
         value=value,
-        title={'text': title},
+        number={'suffix': '', 'font': {'size': 20}},
+        title={'text': title, 'font': {'size': 14}},
         domain={'x': [0, 1], 'y': [0, 1]},
         gauge={
-            'axis': {'range': [0, max_value]},
-            'bar': {'color': color},
+            'axis': {'range': [0, max_value], 'tickwidth': 2, 'ticklen': 8},
+            'bar': {'color': color, 'thickness': 0.25},
             'steps': [
                 {'range': [0, max_value*0.5], 'color': '#fee2e2'},
                 {'range': [max_value*0.5, max_value*0.75], 'color': '#fef3c7'},
                 {'range': [max_value*0.75, max_value], 'color': '#d1fae5'}
-            ]
+            ],
+            'threshold': {
+                'line': {'color': 'red', 'width': 4},
+                'thickness': 0.75,
+                'value': max_value * 0.9
+            }
         }
     )])
-    fig.update_layout(height=250, margin=dict(l=0, r=0, t=30, b=0))
+    fig.update_layout(height=height, margin=dict(l=20, r=20, t=40, b=20), font=dict(size=11))
     return fig
 
 def get_month_over_month_change(df, metric_col, month_col='Month'):
@@ -348,10 +355,14 @@ def round_value(value, metric_type='percentage'):
     if metric_type == 'percentage':
         return round(value, 1)
     elif metric_type == 'decimal':
-        return round(value, 2)
+        return round(value, 3)
     elif metric_type == 'whole':
-        return round(value, 0)
+        return int(round(value, 0))
     elif metric_type == 'index':
+        return round(value, 2)
+    elif metric_type == 'currency':
+        return round(value, 0)
+    elif metric_type == 'hours':
         return round(value, 1)
     return round(value, 2)
 
@@ -761,31 +772,40 @@ elif st.session_state.current_page == 'cost_efficiency':
     with col1:
         st.markdown("**KPI Card**")
         rework_pct = rework_data['Rework_Cost_Percentage'].mean()
+        rework_dollars = rework_data['Rework_Cost_Dollars'].sum()
         st.metric(label="Rework Cost %", value=f"{round_value(rework_pct, 'percentage'):.1f}%", delta="-0.3%")
+        st.metric(label="Total Rework $", value=f"${round_value(rework_dollars, 'currency'):,.0f}")
     
     with col2:
-        st.markdown("**Monthly Trend**")
-        if len(rework_data) > 0:
-            rework_trend = rework_data.groupby('Month').agg({
-                'Rework_Cost_Percentage': 'mean'
-            }).reset_index().sort_values('Month')
-            
-            if len(rework_trend) > 1:
-                fig = create_trend_chart(rework_trend, 'Month', 'Rework_Cost_Percentage', 'Rework % Trend', '#ef4444')
-                st.plotly_chart(fig, use_container_width=True)
-    
-    with col3:
-        st.markdown("**By Process (Ranked)**")
+        st.markdown("**By Process (Cost & %)**")
         if len(rework_data) > 0:
             process_rework = rework_data.groupby('Process_Name').agg({
-                'Rework_Cost_Dollars': 'sum'
+                'Rework_Cost_Dollars': 'sum',
+                'Rework_Cost_Percentage': 'mean'
             }).sort_values('Rework_Cost_Dollars', ascending=False).head(6)
             
             fig = go.Figure(data=[
                 go.Bar(y=process_rework.index, x=process_rework['Rework_Cost_Dollars'],
-                       orientation='h', marker_color='#ef4444')
+                       orientation='h', marker_color='#ef4444', name='Cost ($)', text=[f"${x:,.0f}" for x in process_rework['Rework_Cost_Dollars']],
+                       textposition='outside')
             ])
-            fig.update_layout(height=250, showlegend=False, plot_bgcolor="rgba(0,0,0,0)")
+            fig.update_layout(height=280, showlegend=False, plot_bgcolor="rgba(0,0,0,0)", hovermode='y unified')
+            st.plotly_chart(fig, use_container_width=True)
+    
+    with col3:
+        st.markdown("**By Department**")
+        if len(rework_data) > 0:
+            dept_rework = rework_data.groupby('Department').agg({
+                'Rework_Cost_Dollars': 'sum',
+                'Rework_Cost_Percentage': 'mean'
+            }).sort_values('Rework_Cost_Dollars', ascending=False)
+            
+            fig = go.Figure(data=[
+                go.Bar(y=dept_rework.index, x=dept_rework['Rework_Cost_Dollars'],
+                       orientation='h', marker_color='#dc2626', name='Cost ($)', text=[f"${x:,.0f}" for x in dept_rework['Rework_Cost_Dollars']],
+                       textposition='outside')
+            ])
+            fig.update_layout(height=280, showlegend=False, plot_bgcolor="rgba(0,0,0,0)", hovermode='y unified')
             st.plotly_chart(fig, use_container_width=True)
     
     st.divider()
@@ -797,29 +817,57 @@ elif st.session_state.current_page == 'cost_efficiency':
     with col1:
         st.markdown("**KPI Card**")
         auto_roi = auto_data['ROI_Percentage_6M'].mean()
-        st.metric(label="Automation ROI", value=f"{round_value(auto_roi, 'whole'):.0f}%", delta="+45%")
+        auto_savings = auto_data['Time_Savings_Hours'].sum() if 'Time_Savings_Hours' in auto_data.columns else 0
+        st.metric(label="Automation ROI", value=f"{round_value(auto_roi, 'whole'):.0f}%", delta="+4.5%")
+        st.metric(label="Time Savings", value=f"{round_value(auto_savings, 'hours'):,.1f} hrs", delta="+450 hrs")
     
     with col2:
-        st.markdown("**ROI Trend**")
+        st.markdown("**ROI & Savings Trend**")
         if len(auto_data) > 0:
             auto_trend = auto_data.groupby('Month').agg({
-                'ROI_Percentage_6M': 'mean'
+                'ROI_Percentage_6M': 'mean',
+                'Time_Savings_Hours': 'sum' if 'Time_Savings_Hours' in auto_data.columns else lambda x: 0
             }).reset_index().sort_values('Month')
             
             if len(auto_trend) > 1:
-                fig = create_trend_chart(auto_trend, 'Month', 'ROI_Percentage_6M', 'ROI % Trend', '#059669')
+                fig = go.Figure()
+                fig.add_trace(go.Scatter(
+                    x=auto_trend['Month'], y=auto_trend['ROI_Percentage_6M'],
+                    mode='lines+markers', name='ROI %', line=dict(color='#059669', width=3),
+                    marker=dict(size=8), yaxis='y1'
+                ))
+                if 'Time_Savings_Hours' in auto_trend.columns and auto_trend['Time_Savings_Hours'].sum() > 0:
+                    fig.add_trace(go.Scatter(
+                        x=auto_trend['Month'], y=auto_trend['Time_Savings_Hours'],
+                        mode='lines+markers', name='Time Savings (hrs)', line=dict(color='#f59e0b', width=3),
+                        marker=dict(size=8), yaxis='y2'
+                    ))
+                fig.update_layout(
+                    title='ROI & Time Savings Trend', height=250, hovermode='x unified',
+                    yaxis=dict(title='ROI %', titlefont=dict(color='#059669'), tickfont=dict(color='#059669')),
+                    yaxis2=dict(title='Hours', titlefont=dict(color='#f59e0b'), tickfont=dict(color='#f59e0b'), overlaying='y', side='right'),
+                    plot_bgcolor="rgba(0,0,0,0)", margin=dict(l=0, r=0, t=30, b=0)
+                )
                 st.plotly_chart(fig, use_container_width=True)
     
     with col3:
-        st.markdown("**Top Automation Projects**")
+        st.markdown("**ROI by Task**")
         if len(auto_data) > 0:
-            top_auto = auto_data.nlargest(6, 'ROI_Percentage_6M')[['Process_Name', 'ROI_Percentage_6M']]
+            if 'Task_Type' in auto_data.columns:
+                task_roi = auto_data.groupby('Task_Type').agg({
+                    'ROI_Percentage_6M': 'mean'
+                }).sort_values('ROI_Percentage_6M', ascending=False).head(6)
+            else:
+                task_roi = auto_data.groupby('Process_Name').agg({
+                    'ROI_Percentage_6M': 'mean'
+                }).sort_values('ROI_Percentage_6M', ascending=False).head(6)
             
             fig = go.Figure(data=[
-                go.Bar(y=top_auto['Process_Name'], x=top_auto['ROI_Percentage_6M'],
-                       orientation='h', marker_color='#059669')
+                go.Bar(y=task_roi.index, x=task_roi['ROI_Percentage_6M'],
+                       orientation='h', marker_color='#059669', text=[f"{x:.0f}%" for x in task_roi['ROI_Percentage_6M']],
+                       textposition='outside')
             ])
-            fig.update_layout(height=250, showlegend=False, plot_bgcolor="rgba(0,0,0,0)")
+            fig.update_layout(height=280, showlegend=False, plot_bgcolor="rgba(0,0,0,0)", hovermode='y unified')
             st.plotly_chart(fig, use_container_width=True)
     
     st.divider()
@@ -831,21 +879,32 @@ elif st.session_state.current_page == 'cost_efficiency':
     with col1:
         st.markdown("**Gauge Chart**")
         friction = digital_data['Friction_Index_Score'].mean()
-        fig = create_gauge_chart(friction, 100, 'Friction Index', '#f59e0b')
+        fig = create_gauge_chart(friction, 100, 'Friction Index', '#f59e0b', size='small')
         st.plotly_chart(fig, use_container_width=True)
     
     with col2:
-        st.markdown("**Friction by Department**")
+        st.markdown("**Friction by Department & Process**")
         if len(digital_data) > 0:
-            dept_friction = digital_data.groupby('Department').agg({
-                'Friction_Index_Score': 'mean'
-            }).sort_values('Friction_Index_Score', ascending=False)
+            if 'Process' in digital_data.columns:
+                dept_proc_friction = digital_data.groupby(['Department', 'Process']).agg({
+                    'Friction_Index_Score': 'mean'
+                }).reset_index().sort_values('Friction_Index_Score', ascending=False).head(8)
+                dept_proc_friction['Label'] = dept_proc_friction['Department'] + ' - ' + dept_proc_friction['Process']
+                friction_data = dept_proc_friction
+            else:
+                dept_friction = digital_data.groupby('Department').agg({
+                    'Friction_Index_Score': 'mean'
+                }).sort_values('Friction_Index_Score', ascending=False)
+                friction_data = dept_friction.reset_index()
+                friction_data['Label'] = friction_data['Department']
             
             fig = go.Figure(data=[
-                go.Bar(y=dept_friction.index, x=dept_friction['Friction_Index_Score'],
-                       orientation='h', marker_color='#f59e0b')
+                go.Bar(y=friction_data['Label'] if 'Label' in friction_data.columns else friction_data['Department'],
+                       x=friction_data['Friction_Index_Score'],
+                       orientation='h', marker_color='#f59e0b', text=[f"{x:.1f}" for x in friction_data['Friction_Index_Score']],
+                       textposition='outside')
             ])
-            fig.update_layout(height=250, showlegend=False, plot_bgcolor="rgba(0,0,0,0)")
+            fig.update_layout(height=280, showlegend=False, plot_bgcolor="rgba(0,0,0,0)", hovermode='y unified')
             st.plotly_chart(fig, use_container_width=True)
     
     with col3:
@@ -969,17 +1028,18 @@ elif st.session_state.current_page == 'execution_resilience':
                 st.plotly_chart(fig, use_container_width=True)
     
     with col3:
-        st.markdown("**By Process (Ranked)**")
+        st.markdown("**By Department**")
         if len(ftr_data) > 0:
-            process_ftr = ftr_data.groupby('Process').agg({
+            dept_ftr = ftr_data.groupby('Department').agg({
                 'FTR_Rate_Percentage': 'mean'
-            }).sort_values('FTR_Rate_Percentage')
+            }).sort_values('FTR_Rate_Percentage', ascending=False)
             
             fig = go.Figure(data=[
-                go.Bar(y=process_ftr.index, x=process_ftr['FTR_Rate_Percentage'],
-                       orientation='h', marker_color='#059669')
+                go.Bar(y=dept_ftr.index, x=dept_ftr['FTR_Rate_Percentage'],
+                       orientation='h', marker_color='#059669', text=[f"{x:.1f}%" for x in dept_ftr['FTR_Rate_Percentage']],
+                       textposition='outside')
             ])
-            fig.update_layout(height=250, showlegend=False, plot_bgcolor="rgba(0,0,0,0)")
+            fig.update_layout(height=280, showlegend=False, plot_bgcolor="rgba(0,0,0,0)", hovermode='y unified')
             st.plotly_chart(fig, use_container_width=True)
     
     st.divider()
@@ -991,21 +1051,32 @@ elif st.session_state.current_page == 'execution_resilience':
     with col1:
         st.markdown("**Gauge Chart**")
         resilience = resilience_data['Resilience_Score'].mean()
-        fig = create_gauge_chart(resilience, 10, 'Resilience Score', '#0891b2')
+        fig = create_gauge_chart(resilience, 10, 'Resilience Score', '#0891b2', size='small')
         st.plotly_chart(fig, use_container_width=True)
     
     with col2:
-        st.markdown("**Risk by Task**")
+        st.markdown("**Risk by Task & Department**")
         if len(resilience_data) > 0:
-            task_risk = resilience_data.groupby('Critical_Task').agg({
-                'Risk_Percentage': 'mean'
-            }).sort_values('Risk_Percentage', ascending=False).head(6)
+            if 'Department' in resilience_data.columns:
+                task_dept_risk = resilience_data.groupby(['Critical_Task', 'Department']).agg({
+                    'Risk_Percentage': 'mean'
+                }).reset_index().sort_values('Risk_Percentage', ascending=False).head(8)
+                task_dept_risk['Label'] = task_dept_risk['Critical_Task'] + ' - ' + task_dept_risk['Department']
+                risk_data = task_dept_risk
+            else:
+                task_risk = resilience_data.groupby('Critical_Task').agg({
+                    'Risk_Percentage': 'mean'
+                }).sort_values('Risk_Percentage', ascending=False).head(6)
+                risk_data = task_risk.reset_index()
+                risk_data['Label'] = risk_data['Critical_Task']
             
             fig = go.Figure(data=[
-                go.Bar(y=task_risk.index, x=task_risk['Risk_Percentage'],
-                       orientation='h', marker_color='#ef4444')
+                go.Bar(y=risk_data['Label'] if 'Label' in risk_data.columns else risk_data['Critical_Task'],
+                       x=risk_data['Risk_Percentage'],
+                       orientation='h', marker_color='#ef4444', text=[f"{x:.1f}%" for x in risk_data['Risk_Percentage']],
+                       textposition='outside')
             ])
-            fig.update_layout(height=250, showlegend=False, plot_bgcolor="rgba(0,0,0,0)")
+            fig.update_layout(height=280, showlegend=False, plot_bgcolor="rgba(0,0,0,0)", hovermode='y unified')
             st.plotly_chart(fig, use_container_width=True)
     
     with col3:
@@ -1035,25 +1106,39 @@ elif st.session_state.current_page == 'execution_resilience':
         if len(adherence_data) > 0:
             dept_adherence = adherence_data.groupby('Department').agg({
                 'Adherence_Rate_Percentage': 'mean'
-            }).sort_values('Adherence_Rate_Percentage')
+            }).sort_values('Adherence_Rate_Percentage', ascending=False)
             
             fig = go.Figure(data=[
                 go.Bar(y=dept_adherence.index, x=dept_adherence['Adherence_Rate_Percentage'],
-                       orientation='h', marker_color='#1e40af')
+                       orientation='h', marker_color='#1e40af', text=[f"{x:.1f}%" for x in dept_adherence['Adherence_Rate_Percentage']],
+                       textposition='outside')
             ])
-            fig.update_layout(height=250, showlegend=False, plot_bgcolor="rgba(0,0,0,0)")
+            fig.update_layout(height=280, showlegend=False, plot_bgcolor="rgba(0,0,0,0)", hovermode='y unified')
             st.plotly_chart(fig, use_container_width=True)
     
     with col3:
-        st.markdown("**Trend Over Time**")
+        st.markdown("**By Process Step**")
         if len(adherence_data) > 0:
-            adherence_trend = adherence_data.groupby('Month').agg({
-                'Adherence_Rate_Percentage': 'mean'
-            }).reset_index().sort_values('Month')
-            
-            if len(adherence_trend) > 1:
-                fig = create_trend_chart(adherence_trend, 'Month', 'Adherence_Rate_Percentage', 'Adherence Trend', '#1e40af')
+            if 'Process_Step' in adherence_data.columns:
+                step_adherence = adherence_data.groupby('Process_Step').agg({
+                    'Adherence_Rate_Percentage': 'mean'
+                }).sort_values('Adherence_Rate_Percentage', ascending=False)
+                
+                fig = go.Figure(data=[
+                    go.Bar(y=step_adherence.index, x=step_adherence['Adherence_Rate_Percentage'],
+                           orientation='h', marker_color='#0891b2', text=[f"{x:.1f}%" for x in step_adherence['Adherence_Rate_Percentage']],
+                           textposition='outside')
+                ])
+                fig.update_layout(height=280, showlegend=False, plot_bgcolor="rgba(0,0,0,0)", hovermode='y unified')
                 st.plotly_chart(fig, use_container_width=True)
+            else:
+                adherence_trend = adherence_data.groupby('Month').agg({
+                    'Adherence_Rate_Percentage': 'mean'
+                }).reset_index().sort_values('Month')
+                
+                if len(adherence_trend) > 1:
+                    fig = create_trend_chart(adherence_trend, 'Month', 'Adherence_Rate_Percentage', 'Adherence Trend', '#0891b2')
+                    st.plotly_chart(fig, use_container_width=True)
     
     st.divider()
     
@@ -1075,21 +1160,26 @@ elif st.session_state.current_page == 'execution_resilience':
             
             fig = go.Figure(data=[
                 go.Bar(y=process_esc.index, x=process_esc['Step_Exception_Count'],
-                       orientation='h', marker_color='#ef4444')
+                       orientation='h', marker_color='#ef4444', text=[f"{int(x)}" for x in process_esc['Step_Exception_Count']],
+                       textposition='outside')
             ])
-            fig.update_layout(height=250, showlegend=False, plot_bgcolor="rgba(0,0,0,0)")
+            fig.update_layout(height=280, showlegend=False, plot_bgcolor="rgba(0,0,0,0)", hovermode='y unified')
             st.plotly_chart(fig, use_container_width=True)
     
     with col3:
-        st.markdown("**Trend Over Time**")
+        st.markdown("**By Department**")
         if len(escalation_data) > 0:
-            esc_trend = escalation_data.groupby('Month').agg({
+            dept_esc = escalation_data.groupby('Department').agg({
                 'Step_Exception_Count': 'sum'
-            }).reset_index().sort_values('Month')
+            }).sort_values('Step_Exception_Count', ascending=False)
             
-            if len(esc_trend) > 1:
-                fig = create_trend_chart(esc_trend, 'Month', 'Step_Exception_Count', 'Escalation Trend', '#ef4444')
-                st.plotly_chart(fig, use_container_width=True)
+            fig = go.Figure(data=[
+                go.Bar(y=dept_esc.index, x=dept_esc['Step_Exception_Count'],
+                       orientation='h', marker_color='#dc2626', text=[f"{int(x)}" for x in dept_esc['Step_Exception_Count']],
+                       textposition='outside')
+            ])
+            fig.update_layout(height=280, showlegend=False, plot_bgcolor="rgba(0,0,0,0)", hovermode='y unified')
+            st.plotly_chart(fig, use_container_width=True)
     
     st.markdown("---")
     st.markdown("#### Detailed Data & Export")
@@ -1136,20 +1226,21 @@ elif st.session_state.current_page == 'workforce_productivity':
     with col1:
         st.markdown("**KPI Card**")
         avg_output = work_data['Output_Per_Hour'].mean()
-        st.metric(label="Output/FTE", value=f"{round_value(avg_output, 'decimal'):.2f}", delta="+0.3")
+        st.metric(label="Output/FTE", value=f"{round_value(avg_output, 'decimal'):.3f}", delta="+0.3")
     
     with col2:
-        st.markdown("**By Work Model**")
+        st.markdown("**By Department**")
         if len(work_data) > 0:
-            model_output = work_data.groupby('Work_Model').agg({
+            dept_output = work_data.groupby('Department').agg({
                 'Output_Per_Hour': 'mean'
-            })
+            }).sort_values('Output_Per_Hour', ascending=False)
             
             fig = go.Figure(data=[
-                go.Bar(x=model_output.index, y=model_output['Output_Per_Hour'],
-                       marker_color=['#059669', '#1e40af', '#f59e0b'][:len(model_output)])
+                go.Bar(y=dept_output.index, x=dept_output['Output_Per_Hour'],
+                       orientation='h', marker_color='#059669', text=[f"{x:.3f}" for x in dept_output['Output_Per_Hour']],
+                       textposition='outside')
             ])
-            fig.update_layout(height=250, showlegend=False, plot_bgcolor="rgba(0,0,0,0)")
+            fig.update_layout(height=280, showlegend=False, plot_bgcolor="rgba(0,0,0,0)", hovermode='y unified')
             st.plotly_chart(fig, use_container_width=True)
     
     with col3:
@@ -1172,22 +1263,25 @@ elif st.session_state.current_page == 'workforce_productivity':
     with col1:
         st.markdown("**Dial Chart**")
         avg_capacity = capacity_data['Capacity_Utilization_Percentage'].mean()
-        fig = create_gauge_chart(avg_capacity, 150, 'Capacity %', '#f59e0b')
+        fig = create_gauge_chart(avg_capacity, 150, 'Capacity %', '#f59e0b', size='small')
         st.plotly_chart(fig, use_container_width=True)
     
     with col2:
-        st.markdown("**By Department**")
+        st.markdown("**By Department (Utilization)**")
         if len(capacity_data) > 0:
             dept_capacity = capacity_data.groupby('Department').agg({
                 'Capacity_Utilization_Percentage': 'mean'
             }).sort_values('Capacity_Utilization_Percentage', ascending=False)
             
-            fig = go.Figure(data=[
-                go.Bar(y=dept_capacity.index, x=dept_capacity['Capacity_Utilization_Percentage'],
-                       orientation='h', marker_color='#f59e0b')
-            ])
-            fig.add_hline(y=100, line_dash="dash", line_color="red")
-            fig.update_layout(height=250, showlegend=False, plot_bgcolor="rgba(0,0,0,0)")
+            fig = go.Figure()
+            fig.add_trace(go.Bar(
+                y=dept_capacity.index, x=dept_capacity['Capacity_Utilization_Percentage'],
+                orientation='h', marker_color='#f59e0b', name='Capacity %',
+                text=[f"{x:.0f}%" for x in dept_capacity['Capacity_Utilization_Percentage']],
+                textposition='outside'
+            ))
+            fig.add_vline(x=100, line_dash="dash", line_color="red", annotation_text="Target", annotation_position="top right")
+            fig.update_layout(height=280, showlegend=False, plot_bgcolor="rgba(0,0,0,0)", hovermode='y unified', xaxis_title='Utilization %')
             st.plotly_chart(fig, use_container_width=True)
     
     with col3:
@@ -1210,32 +1304,42 @@ elif st.session_state.current_page == 'workforce_productivity':
     with col1:
         st.markdown("**KPI Card**")
         model_accuracy = model_data['Forecast_Accuracy_Percentage'].mean()
-        st.metric(label="Model Accuracy", value=f"{round_value(model_accuracy, 'percentage'):.0f}%", delta="+3.2%")
+        st.metric(label="Model Accuracy", value=f"{round_value(model_accuracy, 'percentage'):.1f}%", delta="+3.2%")
     
     with col2:
         st.markdown("**By Department**")
         if len(model_data) > 0:
             dept_model = model_data.groupby('Department').agg({
                 'Forecast_Accuracy_Percentage': 'mean'
-            }).sort_values('Forecast_Accuracy_Percentage')
+            }).sort_values('Forecast_Accuracy_Percentage', ascending=False)
             
             fig = go.Figure(data=[
                 go.Bar(y=dept_model.index, x=dept_model['Forecast_Accuracy_Percentage'],
-                       orientation='h', marker_color='#1e40af')
+                       orientation='h', marker_color='#1e40af', text=[f"{x:.1f}%" for x in dept_model['Forecast_Accuracy_Percentage']],
+                       textposition='outside')
             ])
-            fig.update_layout(height=250, showlegend=False, plot_bgcolor="rgba(0,0,0,0)")
+            fig.update_layout(height=280, showlegend=False, plot_bgcolor="rgba(0,0,0,0)", hovermode='y unified')
             st.plotly_chart(fig, use_container_width=True)
     
     with col3:
-        st.markdown("**Trend Over Time**")
+        st.markdown("**Staffing Variance**")
         if len(model_data) > 0:
-            model_trend = model_data.groupby('Month').agg({
-                'Forecast_Accuracy_Percentage': 'mean'
-            }).reset_index().sort_values('Month')
-            
-            if len(model_trend) > 1:
-                fig = create_trend_chart(model_trend, 'Month', 'Forecast_Accuracy_Percentage', 'Model Accuracy Trend', '#1e40af')
-                st.plotly_chart(fig, use_container_width=True)
+            if 'Staffing_Variance_Percentage' in model_data.columns:
+                variance_data = model_data.groupby('Month').agg({
+                    'Staffing_Variance_Percentage': 'mean'
+                }).reset_index().sort_values('Month')
+                
+                if len(variance_data) > 1:
+                    fig = create_trend_chart(variance_data, 'Month', 'Staffing_Variance_Percentage', 'Staffing Variance Trend', '#dc2626')
+                    st.plotly_chart(fig, use_container_width=True)
+            else:
+                model_trend = model_data.groupby('Month').agg({
+                    'Forecast_Accuracy_Percentage': 'mean'
+                }).reset_index().sort_values('Month')
+                
+                if len(model_trend) > 1:
+                    fig = create_trend_chart(model_trend, 'Month', 'Forecast_Accuracy_Percentage', 'Model Accuracy Trend', '#1e40af')
+                    st.plotly_chart(fig, use_container_width=True)
     
     st.divider()
     
@@ -1244,32 +1348,48 @@ elif st.session_state.current_page == 'workforce_productivity':
     col1, col2, col3 = st.columns([1, 1, 1])
     
     with col1:
-        st.markdown("**At-Risk Count**")
+        st.markdown("**Health Summary**")
         burnout_count = capacity_data[capacity_data['Burnout_Risk_Flag'] == 'Yes'].shape[0]
+        total_employees = len(capacity_data)
+        burnout_pct = (burnout_count / total_employees * 100) if total_employees > 0 else 0
         st.metric(label="At-Risk Employees", value=f"{round_value(burnout_count, 'whole'):.0f}", delta="+2")
+        st.metric(label="At-Risk %", value=f"{round_value(burnout_pct, 'percentage'):.1f}%")
     
     with col2:
-        st.markdown("**By Department**")
+        st.markdown("**At-Risk & Capacity by Dept**")
         if len(capacity_data) > 0:
-            at_risk = capacity_data[capacity_data['Burnout_Risk_Flag'] == 'Yes'].groupby('Department').size()
+            at_risk_capacity = capacity_data.groupby('Department').agg({
+                'Burnout_Risk_Flag': lambda x: (x == 'Yes').sum(),
+                'Capacity_Utilization_Percentage': 'mean'
+            }).reset_index()
+            at_risk_capacity.columns = ['Department', 'At_Risk_Count', 'Avg_Capacity']
             
-            if len(at_risk) > 0:
-                fig = go.Figure(data=[
-                    go.Bar(y=at_risk.index, x=at_risk.values,
-                           orientation='h', marker_color='#ef4444')
-                ])
-                fig.update_layout(height=250, showlegend=False, plot_bgcolor="rgba(0,0,0,0)")
-                st.plotly_chart(fig, use_container_width=True)
+            fig = go.Figure()
+            fig.add_trace(go.Bar(
+                y=at_risk_capacity['Department'], x=at_risk_capacity['At_Risk_Count'],
+                orientation='h', name='At-Risk', marker_color='#ef4444', text=[f"{int(x)}" for x in at_risk_capacity['At_Risk_Count']],
+                textposition='outside'
+            ))
+            fig.add_trace(go.Scatter(
+                y=at_risk_capacity['Department'], x=at_risk_capacity['Avg_Capacity'],
+                mode='lines+markers', name='Avg Capacity %', line=dict(color='#f59e0b', width=3),
+                marker=dict(size=8), yaxis='y', xaxis='x2'
+            ))
+            fig.update_layout(
+                height=280, plot_bgcolor="rgba(0,0,0,0)", hovermode='y unified',
+                xaxis=dict(title='At-Risk Count'), xaxis2=dict(title='Capacity %', overlaying='x', side='top')
+            )
+            st.plotly_chart(fig, use_container_width=True)
     
     with col3:
-        st.markdown("**Collab Hours**")
+        st.markdown("**Collaboration Trend**")
         if len(collab_data) > 0:
             collab_trend = collab_data.groupby('Month').agg({
                 'Collaboration_Tools_Time_Hours': 'mean'
             }).reset_index().sort_values('Month')
             
             if len(collab_trend) > 1:
-                fig = create_trend_chart(collab_trend, 'Month', 'Collaboration_Tools_Time_Hours', 'Collab Hours Trend', '#f59e0b')
+                fig = create_trend_chart(collab_trend, 'Month', 'Collaboration_Tools_Time_Hours', 'Collaboration Hours Trend', '#0891b2')
                 st.plotly_chart(fig, use_container_width=True)
     
     st.markdown("---")
