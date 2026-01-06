@@ -299,7 +299,8 @@ def create_trend_chart(df, x_col, y_col, title, color='#1e40af', height=280):
         margin=dict(l=0, r=0, t=30, b=0),
         showlegend=False,
         plot_bgcolor="rgba(0,0,0,0)",
-        hovermode='x unified'
+        hovermode='x unified',
+        yaxis=dict(rangemode='nonnegative')
     )
     return fig
 
@@ -359,7 +360,7 @@ def create_gauge_chart(value, max_value, title, color='#1e40af', size='medium'):
     fig.update_layout(height=height, margin=dict(l=20, r=20, t=40, b=20), font=dict(size=11))
     return fig
 
-def create_heatmap(df, x_col, y_col, value_col, title='Heatmap'):
+def create_heatmap(df, x_col, y_col, value_col, title='Heatmap', colorscale='RdYlGn'):
     """Create a heatmap chart"""
     if len(df) < 2:
         return None
@@ -370,7 +371,7 @@ def create_heatmap(df, x_col, y_col, value_col, title='Heatmap'):
         z=pivot_df.values,
         x=pivot_df.columns,
         y=pivot_df.index,
-        colorscale='RdYlGn',
+        colorscale=colorscale,
         text=np.round(pivot_df.values, 1),
         texttemplate='%{text:.1f}',
         textfont={"size": 10},
@@ -854,7 +855,14 @@ elif st.session_state.current_page == 'cost_efficiency':
             
             fig = go.Figure(data=[
                 go.Bar(y=process_rework.index, x=process_rework['Rework_Cost_Dollars'],
-                       orientation='h', marker_color='#ef4444', name='Cost ($)', text=[f"${x:,.0f}" for x in process_rework['Rework_Cost_Dollars']],
+                       orientation='h', 
+                       marker=dict(
+                           color=process_rework['Rework_Cost_Dollars'],
+                           colorscale='Reds',
+                           showscale=False,
+                           line=dict(width=0)
+                       ),
+                       name='Cost ($)', text=[f"${x:,.0f}" for x in process_rework['Rework_Cost_Dollars']],
                        textposition='outside')
             ])
             fig.update_layout(height=280, showlegend=False, plot_bgcolor="rgba(0,0,0,0)", hovermode='y unified')
@@ -870,7 +878,14 @@ elif st.session_state.current_page == 'cost_efficiency':
             
             fig = go.Figure(data=[
                 go.Bar(y=dept_rework.index, x=dept_rework['Rework_Cost_Dollars'],
-                       orientation='h', marker_color='#dc2626', name='Cost ($)', text=[f"${x:,.0f}" for x in dept_rework['Rework_Cost_Dollars']],
+                       orientation='h', 
+                       marker=dict(
+                           color=dept_rework['Rework_Cost_Dollars'],
+                           colorscale='Reds',
+                           showscale=False,
+                           line=dict(width=0)
+                       ),
+                       name='Cost ($)', text=[f"${x:,.0f}" for x in dept_rework['Rework_Cost_Dollars']],
                        textposition='outside')
             ])
             fig.update_layout(height=280, showlegend=False, plot_bgcolor="rgba(0,0,0,0)", hovermode='y unified')
@@ -1122,7 +1137,7 @@ elif st.session_state.current_page == 'execution_resilience':
             fig.update_layout(height=280, showlegend=False, plot_bgcolor="rgba(0,0,0,0)", hovermode='y unified')
             st.plotly_chart(fig, use_container_width=True)
     
-    st.markdown("---")
+    st.divider()
     st.markdown("#### Detailed Data & Export")
     
     tabs = st.tabs(["FTR Rate", "Adherence", "Resilience", "Escalations"])
