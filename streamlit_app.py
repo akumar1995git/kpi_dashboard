@@ -1325,8 +1325,8 @@ elif st.session_state.current_page == 'workforce_productivity':
             if len(collab_trend) > 1:
                 fig = create_trend_chart(collab_trend, 'Month', 'Collaboration_Tools_Time_Hours', 'Collaboration Hours Trend', '#0891b2')
                 st.plotly_chart(fig, use_container_width=True)
-st.divider()
-     st.markdown("### Action Insights")
+    st.divider()
+    st.markdown("### Action Insights")
     col_action1, col_action2 = st.columns([1, 1])
     
     with col_action1:
