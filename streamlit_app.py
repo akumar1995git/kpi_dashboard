@@ -278,6 +278,14 @@ def filter_data(df, month_col='Month', dept_col='Department'):
         result = result[result[dept_col].isin(dept_filter)]
     return result
 
+def get_latest_month_data(df, month_col='Month'):
+    """Get data for the latest month only"""
+    if len(df) == 0:
+        return df
+    latest_month = df[month_col].max()
+    return df[df[month_col] == latest_month]
+
+
 def create_trend_chart(df, x_col, y_col, title, color='#1e40af', height=280):
     """Create a trend line chart"""
     if len(df) < 2:
@@ -942,7 +950,8 @@ elif st.session_state.current_page == 'cost_efficiency':
     with col_action1:
         st.markdown("**Immediate Attention Required:**")
         if len(role_data) > 0:
-            top_low_value = role_data.nlargest(5, 'Opportunity_Cost_Dollars')[['Employee_ID', 'Role', 'Low_Value_Work_Percentage', 'Opportunity_Cost_Dollars']]
+            role_data_latest = get_latest_month_data(role_data)
+            top_low_value = role_data_latest.nlargest(5, 'Opportunity_Cost_Dollars')[['Employee_ID', 'Role', 'Low_Value_Work_Percentage', 'Opportunity_Cost_Dollars']]
             for idx, row in top_low_value.iterrows():
                 st.markdown(f'<div class="insights-box">{row["Employee_ID"]} ({row["Role"]}): {row["Low_Value_Work_Percentage"]:.1f}% low-value work - ${row["Opportunity_Cost_Dollars"]:,.0f}/month</div>', unsafe_allow_html=True)
     
@@ -1122,9 +1131,9 @@ elif st.session_state.current_page == 'execution_resilience':
             fig = go.Figure(data=[
                 go.Bar(y=process_esc.index, x=process_esc['Step_Exception_Count'],
                        orientation='h', marker_color='#ef4444', text=[f"{int(x)}" for x in process_esc['Step_Exception_Count']],
-                       textposition='outside')
+                       textposition='outside', name='Escalations')
             ])
-            fig.update_layout(height=280, showlegend=False, plot_bgcolor="rgba(0,0,0,0)", hovermode='y unified')
+            fig.update_layout(height=280, showlegend=True, plot_bgcolor="rgba(0,0,0,0)", hovermode='y unified')
             st.plotly_chart(fig, use_container_width=True)
     
     with col3:
@@ -1157,9 +1166,10 @@ elif st.session_state.current_page == 'execution_resilience':
     with col_action2:
         st.markdown("**Escalation Risk Hotspots:**")
         if len(escalation_data) > 0:
-            top_escalations = escalation_data.nlargest(5, 'Step_Exception_Count')[['Process', 'Step_Exception_Count']] if 'Process' in escalation_data.columns else escalation_data.nlargest(5, 'Step_Exception_Count')
+            escalation_data_latest = get_latest_month_data(escalation_data)
+            top_escalations = escalation_data_latest.nlargest(5, 'Step_Exception_Count')[['Process', 'Step_Exception_Count']] if 'Process' in escalation_data_latest.columns else escalation_data_latest.nlargest(5, 'Step_Exception_Count')
             for idx, row in top_escalations.iterrows():
-                process_name = row['Process'] if 'Process' in escalation_data.columns else 'Unknown Process'
+                process_name = row['Process'] if 'Process' in escalation_data_latest.columns else 'Unknown Process'
                 count = row['Step_Exception_Count']
                 st.markdown(f'<div class="insights-box">{process_name}: {int(count)} exceptions - Root cause analysis needed</div>', unsafe_allow_html=True)
     
